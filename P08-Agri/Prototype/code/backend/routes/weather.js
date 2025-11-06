@@ -1,3 +1,4 @@
+// routes/weather.js
 const express = require('express');
 const axios = require('axios');
 
@@ -59,7 +60,7 @@ router.get('/', async (req, res) => {
       wind_speed_kmh: typeof current.windspeed === 'number' ? current.windspeed : null
     };
 
-    // Try Open-Meteo reverse geocoding first
+    // Build city label
     let city_label = 'Current location';
     try {
       const r1 = await http.get(reverse_open_meteo);
@@ -74,39 +75,32 @@ router.get('/', async (req, res) => {
         if (admin1) parts.push(admin1);
         if (!name && admin2) parts.push(admin2);
         if (parts.length === 0 && country) parts.push(country);
-        if (parts.length > 0) {
-          city_label = parts.join(', ');
-        }
+        if (parts.length > 0) city_label = parts.join(', ');
       } else {
         throw new Error('Open-Meteo reverse returned no results');
       }
     } catch (e) {
-      console.warn('[weather] reverse geocoding via Open-Meteo failed:', e?.response?.status || '', e?.message || '');
-      // Fallback to BigDataCloud (no key required)
+      console.warn('[weather] reverse via Open-Meteo failed:', e?.response?.status || '', e?.message || '');
       try {
         const r2 = await http.get(reverse_bdc);
-        // BigDataCloud fields: city, locality, principalSubdivision, countryName
         const b = r2.data || {};
         const parts = [];
         if (b.city || b.locality) parts.push(b.city || b.locality);
         if (b.principalSubdivision) parts.push(b.principalSubdivision);
         if (parts.length === 0 && b.countryName) parts.push(b.countryName);
-        if (parts.length > 0) {
-          city_label = parts.join(', ');
-        }
+        if (parts.length > 0) city_label = parts.join(', ');
       } catch (e2) {
-        console.warn('[weather] reverse geocoding fallback (BDC) failed:', e2?.response?.status || '', e2?.message || '');
+        console.warn('[weather] reverse fallback (BDC) failed:', e2?.response?.status || '', e2?.message || '');
       }
     }
 
-    // Advice generation
+    // Advice
     const advice = [];
     if (today.precipitation_mm !== null && today.precipitation_mm >= 2) {
       advice.push('Rain expected today: postpone irrigation and N top-dress; check low fields for waterlogging.');
     } else {
       advice.push('No significant rain today: if soil is dry, plan irrigation early morning or late evening.');
     }
-
     if (
       (current_block.wind_speed_kmh !== null && current_block.wind_speed_kmh >= 25) ||
       (today.wind_gust_max_kmh !== null && today.wind_gust_max_kmh >= 40)
@@ -115,13 +109,11 @@ router.get('/', async (req, res) => {
     } else {
       advice.push('Calmer winds: if spraying is needed, this is a suitable window.');
     }
-
     if (today.tmax_c !== null && today.tmax_c >= 35) {
       advice.push('High heat: shallow irrigation to reduce stress; avoid transplanting at midday; monitor for wilting.');
     } else if (today.tmin_c !== null && today.tmin_c <= 5) {
       advice.push('Cold risk: use row covers for sensitive crops; avoid night irrigation.');
     }
-
     if (today.uv_index_max !== null && today.uv_index_max >= 8) {
       advice.push('Strong UV: schedule field work earlier/later; ensure sun protection for workers.');
     }

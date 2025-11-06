@@ -1,22 +1,41 @@
-import axios from 'axios';
+// src/services/weatherService.js
 
-const API_URL = 'http://localhost:5000/api/weather';
+// Resolve your backend base URL (works for CRA or Vite)
+const fromEnv =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+  process.env.REACT_APP_API_BASE_URL;
 
-const api = axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' }
-});
+const API_BASE =
+  fromEnv ||
+  (window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://sproj-p08.onrender.com'); 
 
-export const fetch_weather_by_coords = async (latitude, longitude) => {
+export async function fetch_weather_by_coords(latitude, longitude) {
+  const url = `${API_BASE}/api/weather?lat=${encodeURIComponent(
+    latitude
+  )}&lon=${encodeURIComponent(longitude)}`;
+
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+
+  let data = null;
   try {
-    const response = await api.get('/', { params: { lat: latitude, lon: longitude } });
-    return response.data;
-  } catch (error) {
-    const message_text = error?.response?.data?.message || 'Weather fetch failed';
-    throw message_text;
+    data = await res.json();
+  } catch {
+    // keep data as null
   }
-};
 
-const weather_service = { fetch_weather_by_coords };
+  if (!res.ok) {
+    const msg =
+      (data && (data.message || data.error || data.detail)) ||
+      `Weather request failed (${res.status})`;
+    throw new Error(msg);
+  }
 
-export default weather_service;
+  // Normalize field name so your Dashboard's advice keeps working
+  if (data?.today && data.today.wind_gust_max_kmh !== undefined && data.today.wind_gusts_kmh === undefined) {
+    data.today.wind_gusts_kmh = data.today.wind_gust_max_kmh;
+  }
+
+  return data; // { city, latitude, longitude, current:{...}, today:{...}, advice:[...] }
+}
