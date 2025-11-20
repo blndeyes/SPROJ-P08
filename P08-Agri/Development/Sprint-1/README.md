@@ -25,6 +25,7 @@ LIST OF REQUIREMENTS COMPLETED IN THE SPRINT
 - **UC-002 – Secure Login:** Muhammad Walid Khalid  
 - **UC-010 – Contact Support:** Zarak Qadir Khan  
 - **UC-020 – Change Password:** Syeda Umaima Hasan, Mishaal Usman
+- **UC-006 – view diagnosis history:** M. Walid Khalid
 - **Deployment:** Zarak Qadir Khan, Mishaal Usman, Syeda Umaima Hasan
 
 
