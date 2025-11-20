@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { registerWithOtp } from '../../services/authService'
 
 function Register() {
-  const navigate = useNavigate()
+  const navigate = useNavigate() // page navigation
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -12,10 +12,10 @@ function Register() {
     confirmPassword: '',
     role: 'farmer'
   })
-  const [errors, setErrors] = useState({})
-  const [apiError, setApiError] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({}) // per-field validation errors
+  const [apiError, setApiError] = useState('') // server error
+  const [showPassword, setShowPassword] = useState(false) // toggle password visibility
+  const [loading, setLoading] = useState(false) // submitting state
 
   function handleChange(e) {
     const name = e.target.name
@@ -24,7 +24,7 @@ function Register() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }))
     }
-    setApiError('')
+    setApiError('') // clear old server error on edit
   }
 
   function validateForm() {
@@ -58,13 +58,13 @@ function Register() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setApiError('')
+    e.preventDefault() // stop page reload
+    setApiError('') // reset server error
     if (!validateForm()) {
       return
     }
 
-    setLoading(true)
+    setLoading(true) // lock form
     try {
       const userData = {
         name: formData.name,
@@ -74,11 +74,11 @@ function Register() {
         role: formData.role
       }
 
-      await registerWithOtp(userData)
+      await registerWithOtp(userData) // request otp to email
 
-      localStorage.setItem('pending_signup_email', userData.email)
+      localStorage.setItem('pending_signup_email', userData.email) // keep for verify page
 
-      navigate('/verify-otp', { state: { email: userData.email } })
+      navigate('/verify-otp', { state: { email: userData.email } }) // go to otp page
     } catch (err) {
       const msg = typeof err === 'string' ? err : (err && err.message ? err.message : 'Registration failed. Please try again.')
       setApiError(msg)

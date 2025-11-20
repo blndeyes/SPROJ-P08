@@ -6,15 +6,15 @@ const router = express.Router()
 
 function get_auth_user(request) {
   const auth_header = request.headers.authorization || ''
-  if (!auth_header.startsWith('Bearer ')) {
+  if (!auth_header.startsWith('Bearer ')) { // Expect "Authorization: Bearer <JWT>"
     return null
   }
-  const token = auth_header.slice(7)
+  const token = auth_header.slice(7) // Strip "Bearer "
   if (!token) {
     return null
   }
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = jwt.verify(token, process.env.JWT_SECRET) // Verify and decode with server secret
     return payload
   } catch (error) {
     return null
@@ -24,10 +24,11 @@ function get_auth_user(request) {
 router.post('/change-password', async function (request, response) {
   try {
     const auth_user = get_auth_user(request)
-    if (!auth_user) {
+    if (!auth_user) { // Reject if token missing/invalid
       return response.status(401).json({ message: 'Unauthorized' })
     }
 
+    // Accept oldPassword/newPassword from JSON body
     const old_password_raw = request.body && request.body.oldPassword ? request.body.oldPassword : ''
     const new_password_raw = request.body && request.body.newPassword ? request.body.newPassword : ''
 
@@ -38,22 +39,22 @@ router.post('/change-password', async function (request, response) {
       return response.status(400).json({ message: 'Old password and new password are required' })
     }
 
-    if (new_password.length < 8) {
+    if (new_password.length < 8) { // Basic policy: minimum length
       return response.status(400).json({ message: 'New password must be at least 8 characters long' })
     }
 
-    const user = await User.findById(auth_user.userId)
+    const user = await User.findById(auth_user.userId) // userId comes from verified JWT payload
     if (!user) {
       return response.status(404).json({ message: 'User not found' })
     }
 
-    const is_match = await user.comparePassword(old_password)
+    const is_match = await user.comparePassword(old_password) // bcrypt compare against stored hash
     if (!is_match) {
       return response.status(400).json({ message: 'Old password is incorrect' })
     }
 
-    user.password = new_password
-    await user.save()
+    user.password = new_password // Will be hashed by User model pre('save') hook
+    await user.save() // Persists the new hashed password
 
     return response.json({ message: 'Password changed successfully' })
   } catch (error) {

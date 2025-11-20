@@ -4,18 +4,21 @@ import { get_diagnosis_history } from '../../services/historyService'
 
 function DiagnosticHistory() {
   const navigate = useNavigate()
+  // list and paging state
   const [diagnoses, set_diagnoses] = useState([])
   const [is_loading, set_is_loading] = useState(true)
   const [error, set_error] = useState('')
   const [total, set_total] = useState(0)
+  // detail modal state
   const [selected_diagnosis, set_selected_diagnosis] = useState(null)
   const [is_detail_modal_open, set_is_detail_modal_open] = useState(false)
 
   useEffect(() => {
-    load_history()
+    load_history() // load on first render
   }, [])
 
   async function load_history() {
+    // fetch latest 50 items starting at 0
     set_is_loading(true)
     set_error('')
     try {
@@ -30,20 +33,24 @@ function DiagnosticHistory() {
   }
 
   function handle_back_to_dashboard() {
+    // go back to main dashboard
     navigate('/farmer-dashboard')
   }
 
   function handle_view_details(diagnosis) {
+    // open modal with selected item
     set_selected_diagnosis(diagnosis)
     set_is_detail_modal_open(true)
   }
 
   function close_detail_modal() {
+    // close modal and clear selection
     set_is_detail_modal_open(false)
     set_selected_diagnosis(null)
   }
 
   function format_date(date_string) {
+    // pretty print created_at
     const date = new Date(date_string)
     return date.toLocaleString('en-US', {
       month: 'short',
@@ -56,12 +63,14 @@ function DiagnosticHistory() {
   }
 
   function get_confidence_color(confidence) {
+    // text color based on confidence thresholds
     if (confidence >= 0.8) return 'text-green-600'
     if (confidence >= 0.6) return 'text-yellow-600'
     return 'text-red-600'
   }
 
   function get_confidence_bg(confidence) {
+    // background color based on confidence thresholds
     if (confidence >= 0.8) return 'bg-green-100'
     if (confidence >= 0.6) return 'bg-yellow-100'
     return 'bg-red-100'
@@ -69,7 +78,7 @@ function DiagnosticHistory() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Header */}
+      {/* header */}
       <div className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
@@ -91,7 +100,7 @@ function DiagnosticHistory() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* main content */}
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {is_loading && (
           <div className="flex justify-center items-center py-12">
@@ -161,7 +170,7 @@ function DiagnosticHistory() {
         )}
       </div>
 
-      {/* Detail Modal */}
+      {/* detail modal */}
       {is_detail_modal_open && selected_diagnosis && (
         <div className="fixed inset-0 z-50 overflow-y-auto" onClick={close_detail_modal}>
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">

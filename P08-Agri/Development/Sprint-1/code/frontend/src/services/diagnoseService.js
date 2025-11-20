@@ -1,3 +1,4 @@
+// resolve backend base url
 const from_env =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
   process.env.REACT_APP_API_BASE_URL
@@ -9,6 +10,7 @@ const default_base = is_localhost ? 'http://localhost:5000' : (is_vercel ? '' : 
 const preferred_base = from_env || default_base
 
 async function try_post_diagnose(base_url, file) {
+  // post image to a given base url
   const form = new FormData()
   form.append('image', file)
   
@@ -31,9 +33,9 @@ async function try_post_diagnose(base_url, file) {
 }
 
 export async function diagnose_image(file) {
-  // Try configured base first; on 404/network error, fall back to default Render API
+  // try configured base first; on 404 or network error, fall back to default api
   const bases_to_try = preferred_base === default_base ? [preferred_base] : [preferred_base, default_base]
-  // If using vercel rewrite (relative ''), also try absolute Render as a backup
+  // if using vercel rewrite (relative ''), also try absolute render as backup
   if (bases_to_try[0] === '' && !bases_to_try.includes('https://sproj-p08-2.onrender.com')) {
     bases_to_try.push('https://sproj-p08-2.onrender.com')
   }

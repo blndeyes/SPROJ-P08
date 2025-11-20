@@ -3,17 +3,17 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { verifyOtp } from '../../services/authService'
 
 function VerifyOtp() {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate = useNavigate() // page navigation
+  const location = useLocation() // to read email from previous page
 
-  const stateEmail = location.state && location.state.email ? location.state.email : ''
-  const storedEmail = localStorage.getItem('pending_signup_email') || ''
+  const stateEmail = location.state && location.state.email ? location.state.email : '' // email passed via navigate
+  const storedEmail = localStorage.getItem('pending_signup_email') || '' // fallback from localstorage
 
-  const [email] = useState(stateEmail || storedEmail)
-  const [otp, setOtp] = useState('')
-  const [errorText, setErrorText] = useState('')
-  const [infoText, setInfoText] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [email] = useState(stateEmail || storedEmail) // final email to verify
+  const [otp, setOtp] = useState('') // user input code
+  const [errorText, setErrorText] = useState('') // error message
+  const [infoText, setInfoText] = useState('') // helper message
+  const [isLoading, setIsLoading] = useState(false) // submitting state
 
   useEffect(() => {
     if (!email) {
@@ -24,17 +24,17 @@ function VerifyOtp() {
   }, [email])
 
   function handleOtpChange(e) {
-    if (isLoading) {
+    if (isLoading) { // ignore edits while submitting
       return
     }
-    const value = e.target.value.replace(/[^0-9]/g, '')
+    const value = e.target.value.replace(/[^0-9]/g, '') // keep only numbers
     setOtp(value)
     setErrorText('')
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    if (isLoading) {
+    e.preventDefault() // stop page reload
+    if (isLoading) { // prevent double submit
       return
     }
     if (!email) {
@@ -46,14 +46,14 @@ function VerifyOtp() {
       return
     }
 
-    setIsLoading(true)
-    setErrorText('')
+    setIsLoading(true) // lock form
+    setErrorText('') // clear old error
     try {
-      const data = await verifyOtp({ email, otp })
+      const data = await verifyOtp({ email, otp }) // call backend verify
 
-      localStorage.removeItem('pending_signup_email')
+      localStorage.removeItem('pending_signup_email') // cleanup
 
-      const role = data && data.user && data.user.role ? data.user.role : null
+      const role = data && data.user && data.user.role ? data.user.role : null // route by role
       if (role === 'farmer') {
         navigate('/farmer-dashboard')
       } else if (role === 'inspector' || role === 'admin') {

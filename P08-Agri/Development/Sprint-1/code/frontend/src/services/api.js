@@ -1,3 +1,4 @@
+// resolve backend base url
 const from_env =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
   process.env.REACT_APP_API_URL;
@@ -11,6 +12,7 @@ const api_base =
     : (isVercel ? '' : 'https://sproj-p08-2.onrender.com'));
 
 export async function register_user(payload) {
+  // simple wrapper to call backend register
   const res = await fetch(`${api_base}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

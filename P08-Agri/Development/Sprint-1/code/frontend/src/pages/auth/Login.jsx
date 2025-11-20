@@ -3,20 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { login as login_api } from "../../services/authService";
 
 function Login() {
-  const navigate = useNavigate();
-  const [email, set_email] = useState("");
-  const [password, set_password] = useState("");
-  const [show_password, set_show_password] = useState(false);
-  const [error_text, set_error_text] = useState("");
-  const [is_loading, set_is_loading] = useState(false);
+  const navigate = useNavigate(); // page navigation
+  const [email, set_email] = useState(""); // user email input
+  const [password, set_password] = useState(""); // user password input
+  const [show_password, set_show_password] = useState(false); // toggle password visibility
+  const [error_text, set_error_text] = useState(""); // server or validation error text
+  const [is_loading, set_is_loading] = useState(false); // show loading state during request
 
   async function handle_submit(e) {
-    e.preventDefault();
-    set_error_text("");
-    set_is_loading(true);
+    e.preventDefault(); // prevent page reload
+    set_error_text(""); // clear old error
+    set_is_loading(true); // lock form while submitting
     try {
-      await login_api({ email, password });
-      // Get user role from localStorage to determine redirect
+      await login_api({ email, password }); // call backend login
+      // get user role from localstorage to decide where to go
       const userJson = localStorage.getItem('user');
       if (userJson) {
         try {

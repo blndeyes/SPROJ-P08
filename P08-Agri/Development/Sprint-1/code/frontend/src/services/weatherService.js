@@ -1,6 +1,6 @@
 // src/services/weatherService.js
 
-// Resolve your backend base URL (works for CRA or Vite)
+// resolve backend base url (works for cra or vite)
 const fromEnv =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
   process.env.REACT_APP_API_BASE_URL;
@@ -11,6 +11,7 @@ const API_BASE =
   fromEnv || (isLocalhost ? 'http://localhost:5000' : (isVercel ? '' : 'https://sproj-p08-2.onrender.com'));
 
 export async function fetch_weather_by_coords(latitude, longitude) {
+  // call backend weather endpoint with lat lon
   const url = `${API_BASE}/api/weather?lat=${encodeURIComponent(
     latitude
   )}&lon=${encodeURIComponent(longitude)}`;
@@ -31,7 +32,7 @@ export async function fetch_weather_by_coords(latitude, longitude) {
     throw new Error(msg);
   }
 
-  // Normalize field name so your Dashboard's advice keeps working
+  // normalize gust field for dashboard usage
   if (data?.today && data.today.wind_gust_max_kmh !== undefined && data.today.wind_gusts_kmh === undefined) {
     data.today.wind_gusts_kmh = data.today.wind_gust_max_kmh;
   }

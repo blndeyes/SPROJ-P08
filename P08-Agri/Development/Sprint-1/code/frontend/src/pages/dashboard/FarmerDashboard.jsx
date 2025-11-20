@@ -8,12 +8,14 @@ import { changePassword } from '../../services/authService'
 function FarmerDashboard() {
   const navigate = useNavigate()
   const user_json = localStorage.getItem('user') || '{}'
-  const user = JSON.parse(user_json)
+  const user = JSON.parse(user_json) // current logged in user
 
+  // weather state
   const [is_getting_weather, set_is_getting_weather] = useState(false)
   const [weather_error, set_weather_error] = useState('')
   const [weather_data, set_weather_data] = useState(null)
 
+  // image diagnosis state
   const [selected_file, set_selected_file] = useState(null)
   const [preview_url, set_preview_url] = useState('')
   const [is_uploading, set_is_uploading] = useState(false)
@@ -21,6 +23,7 @@ function FarmerDashboard() {
   const [diagnose_result, set_diagnose_result] = useState(null)
   const file_input_ref = useRef(null)
 
+  // help and support state
   const [is_help_open, set_is_help_open] = useState(false)
   const [help_subject, set_help_subject] = useState('')
   const [help_message, set_help_message] = useState('')
@@ -28,6 +31,7 @@ function FarmerDashboard() {
   const [help_success_text, set_help_success_text] = useState('')
   const [is_sending_help, set_is_sending_help] = useState(false)
 
+  // profile menu and password change state
   const [is_profile_menu_open, set_is_profile_menu_open] = useState(false)
   const [is_change_password_open, set_is_change_password_open] = useState(false)
   const [old_password_first, set_old_password_first] = useState('')
@@ -37,12 +41,14 @@ function FarmerDashboard() {
   const [cp_success_text, set_cp_success_text] = useState('')
   const [is_changing_password, set_is_changing_password] = useState(false)
 
+  // sign out of app
   function handle_logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login')
   }
 
+  // get location from browser
   function get_browser_location() {
     return new Promise((resolve, reject) => {
       if (!('geolocation' in navigator)) {
@@ -63,6 +69,7 @@ function FarmerDashboard() {
     })
   }
 
+  // fetch weather and advisory
   async function handle_get_weather() {
     if (is_getting_weather) {
       return
@@ -82,12 +89,14 @@ function FarmerDashboard() {
     }
   }
 
+  // open file picker
   function handle_click_upload_button() {
     if (file_input_ref.current) {
       file_input_ref.current.click()
     }
   }
 
+  // when file chosen, show preview and reset state
   function handle_file_change(e) {
     const file = e.target.files && e.target.files[0]
     if (file) {
@@ -98,6 +107,7 @@ function FarmerDashboard() {
     }
   }
 
+  // send image for diagnosis
   async function handle_analyze_click() {
     if (!selected_file) {
       set_diagnose_error('Please select an image')
@@ -117,6 +127,7 @@ function FarmerDashboard() {
     }
   }
 
+  // help modal open and close
   function open_help_modal() {
     set_help_subject('')
     set_help_message('')
@@ -133,6 +144,7 @@ function FarmerDashboard() {
     set_is_help_open(false)
   }
 
+  // track help form edits
   function handle_help_subject_change(e) {
     set_help_subject(e.target.value)
     if (help_error_text) {
@@ -153,6 +165,7 @@ function FarmerDashboard() {
     }
   }
 
+  // submit help request
   async function handle_help_submit(e) {
     e.preventDefault()
     if (is_sending_help) {
@@ -188,6 +201,7 @@ function FarmerDashboard() {
     set_is_profile_menu_open((prev) => !prev)
   }
 
+  // open change password flow
   function open_change_password_modal() {
     set_is_profile_menu_open(false)
     set_old_password_first('')
@@ -206,6 +220,7 @@ function FarmerDashboard() {
     set_is_change_password_open(false)
   }
 
+  // handle password field input changes
   function handle_old_password_first_change(e) {
     set_old_password_first(e.target.value)
     if (cp_error_text) {
@@ -236,6 +251,7 @@ function FarmerDashboard() {
     }
   }
 
+  // submit password change
   async function handle_change_password_submit(e) {
     e.preventDefault()
     if (is_changing_password) {

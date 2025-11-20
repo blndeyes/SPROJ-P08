@@ -7,15 +7,15 @@ const router = express.Router()
 
 function get_auth_user(request) {
   const auth_header = request.headers.authorization || ''
-  if (!auth_header.startsWith('Bearer ')) {
+  if (!auth_header.startsWith('Bearer ')) { // Expect an "Authorization: Bearer <token>" header
     return null
   }
-  const token = auth_header.slice(7)
+  const token = auth_header.slice(7) // Remove the "Bearer " prefix to get the raw token
   if (!token) {
     return null
   }
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = jwt.verify(token, process.env.JWT_SECRET) // Verify the token and get decoded user info
     return payload
   } catch (error) {
     return null
@@ -25,28 +25,30 @@ function get_auth_user(request) {
 router.post('/complaints', async function (request, response) {
   try {
     const auth_user = get_auth_user(request)
-    if (!auth_user) {
+    if (!auth_user) { // Stop if the user isn't logged in (no valid token)
       return response.status(401).json({ message: 'Unauthorized' })
     }
 
+    // Read the subject and message the user typed
     const subject_raw = request.body && request.body.subject ? request.body.subject : ''
     const message_raw = request.body && request.body.message ? request.body.message : ''
 
     const subject = String(subject_raw).trim()
     const message = String(message_raw).trim()
 
-    if (!subject || !message) {
+    if (!subject || !message) { // Both fields are required
       return response.status(400).json({ message: 'Subject and message are required' })
     }
 
     const complaint = new Complaint({
-      userEmail: auth_user.email,
-      userId: auth_user.userId,
+      userEmail: auth_user.email, // Fill in who filed the complaint (from the token)
+      userId: auth_user.userId,   // Fill in who filed the complaint (from the token)
       subject,
       message,
       status: 'not addressed'
     })
 
+    // Save it and email our support inbox
     await complaint.save()
     await send_help_email({
       subject,
@@ -54,6 +56,7 @@ router.post('/complaints', async function (request, response) {
       userEmail: auth_user.email
     })
 
+    // Return a simple confirmation plus what we stored
     return response.status(201).json({
       message: 'Complaint submitted successfully',
       complaint: {

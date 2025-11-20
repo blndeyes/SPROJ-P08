@@ -8,12 +8,14 @@ import { changePassword } from '../../services/authService'
 function Dashboard() {
   const navigate = useNavigate()
   const user_json = localStorage.getItem('user') || '{}'
-  const user = JSON.parse(user_json)
+  const user = JSON.parse(user_json) // current logged in user from localstorage
 
+  // weather state
   const [is_getting_weather, set_is_getting_weather] = useState(false)
   const [weather_error, set_weather_error] = useState('')
   const [weather_data, set_weather_data] = useState(null)
 
+  // image diagnosis state
   const [selected_file, set_selected_file] = useState(null)
   const [preview_url, set_preview_url] = useState('')
   const [is_uploading, set_is_uploading] = useState(false)
@@ -21,6 +23,7 @@ function Dashboard() {
   const [diagnose_result, set_diagnose_result] = useState(null)
   const file_input_ref = useRef(null)
 
+  // help and support modal state
   const [is_help_open, set_is_help_open] = useState(false)
   const [help_subject, set_help_subject] = useState('')
   const [help_message, set_help_message] = useState('')
@@ -28,6 +31,7 @@ function Dashboard() {
   const [help_success_text, set_help_success_text] = useState('')
   const [is_sending_help, set_is_sending_help] = useState(false)
 
+  // profile menu and change password state
   const [is_profile_menu_open, set_is_profile_menu_open] = useState(false)
   const [is_change_password_open, set_is_change_password_open] = useState(false)
   const [old_password_first, set_old_password_first] = useState('')
@@ -37,12 +41,14 @@ function Dashboard() {
   const [cp_success_text, set_cp_success_text] = useState('')
   const [is_changing_password, set_is_changing_password] = useState(false)
 
+  // sign out
   function handle_logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login')
   }
 
+  // get current location from browser
   function get_browser_location() {
     return new Promise((resolve, reject) => {
       if (!('geolocation' in navigator)) {
@@ -63,6 +69,7 @@ function Dashboard() {
     })
   }
 
+  // fetch weather and advice for current location
   async function handle_get_weather() {
     if (is_getting_weather) {
       return
@@ -82,12 +89,14 @@ function Dashboard() {
     }
   }
 
+  // open native file picker
   function handle_click_upload_button() {
     if (file_input_ref.current) {
       file_input_ref.current.click()
     }
   }
 
+  // when user selects a file, prepare preview and reset result
   function handle_file_change(e) {
     const file = e.target.files && e.target.files[0]
     if (file) {
@@ -98,6 +107,7 @@ function Dashboard() {
     }
   }
 
+  // run image through the model via backend
   async function handle_analyze_click() {
     if (!selected_file) {
       set_diagnose_error('Please select an image')
@@ -117,6 +127,7 @@ function Dashboard() {
     }
   }
 
+  // help modal open and close
   function open_help_modal() {
     set_help_subject('')
     set_help_message('')
@@ -133,6 +144,7 @@ function Dashboard() {
     set_is_help_open(false)
   }
 
+  // track help form input edits
   function handle_help_subject_change(e) {
     set_help_subject(e.target.value)
     if (help_error_text) {
@@ -153,6 +165,7 @@ function Dashboard() {
     }
   }
 
+  // send help request to backend with basic validation
   async function handle_help_submit(e) {
     e.preventDefault()
     if (is_sending_help) {
@@ -188,6 +201,7 @@ function Dashboard() {
     set_is_profile_menu_open((prev) => !prev)
   }
 
+  // open change password modal and reset fields
   function open_change_password_modal() {
     set_is_profile_menu_open(false)
     set_old_password_first('')
@@ -206,6 +220,7 @@ function Dashboard() {
     set_is_change_password_open(false)
   }
 
+  // handle password field inputs
   function handle_old_password_first_change(e) {
     set_old_password_first(e.target.value)
     if (cp_error_text) {
@@ -236,6 +251,7 @@ function Dashboard() {
     }
   }
 
+  // submit password change with simple checks
   async function handle_change_password_submit(e) {
     e.preventDefault()
     if (is_changing_password) {
@@ -285,6 +301,7 @@ function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">AgriQual Dashboard</h1>
           <div className="flex items-center gap-4">
+            {/* weather button and upload */}
             <button
               type="button"
               onClick={handle_get_weather}
@@ -370,6 +387,7 @@ function Dashboard() {
                 {weather_data.current.wind_speed_kmh} km/h
               </p>
             </div>
+            {/* key daily values */}
             <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gray-50 rounded-lg p-4 text-center">
                 <p className="text-sm text-gray-600">Max Temp</p>
@@ -406,6 +424,7 @@ function Dashboard() {
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Image Diagnosis</h2>
               <div className="flex gap-3">
+                {/* analyze image and clear selection */}
                 <button
                   type="button"
                   onClick={handle_analyze_click}
@@ -429,7 +448,7 @@ function Dashboard() {
               </div>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>{preview_url && <img src={preview_url} alt="preview" className="w-full rounded-lg shadow" />}</div>
+              <div>{preview_url && <img src={preview_url} alt="preview" className="w-full rounded-lg shadow" />}</div> {/* show image preview */}
               <div>
                 {diagnose_error && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">

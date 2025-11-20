@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { getToken } from './authService'
 
+// resolve backend base url
 const from_env =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
   process.env.REACT_APP_API_BASE_URL
@@ -16,6 +17,7 @@ const help_api = axios.create({
 })
 
 export async function send_complaint(payload) {
+  // send a help request with subject and message
   const token = getToken()
   if (!token) {
     throw new Error('You must be logged in to send a help request')

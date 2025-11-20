@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer')
 
+// mail transport using smtp environment settings
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT) || 587,
@@ -11,13 +12,14 @@ const transporter = nodemailer.createTransport({
 })
 
 async function send_otp_email(recipient_email, otp) {
+  // if smtp is not configured, log the code instead of sending
   if (!process.env.SMTP_USER) {
     console.log('OTP for', recipient_email, 'is', otp)
     return
   }
 
   const mail_options = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+    from: process.env.EMAIL_FROM || process.env.SMTP_USER, // who the email appears from
     to: recipient_email,
     subject: 'Your AgriQual verification code',
     text: 'Your verification code is ' + otp + '. It will expire in 10 minutes.'
@@ -27,6 +29,7 @@ async function send_otp_email(recipient_email, otp) {
 }
 
 async function send_help_email(payload) {
+  // pull fields from payload
   const subject_raw = payload && payload.subject ? payload.subject : ''
   const message_raw = payload && payload.message ? payload.message : ''
   const user_email = payload && payload.userEmail ? payload.userEmail : ''
@@ -34,8 +37,9 @@ async function send_help_email(payload) {
   const subject = String(subject_raw)
   const message = String(message_raw)
 
-  const to_email = '26100370@lums.edu.pk'
+  const to_email = '26100370@lums.edu.pk' // support inbox
 
+  // if smtp not configured, print to console for dev
   if (!process.env.SMTP_USER) {
     console.log('Help email (not actually sent). To:', to_email)
     console.log('From user:', user_email)
@@ -47,6 +51,7 @@ async function send_help_email(payload) {
   const from_email = process.env.EMAIL_FROM || process.env.SMTP_USER
   const final_subject = '[AgriQual Help] ' + subject
 
+  // simple plain text body
   const body_lines = [
     'New help request from: ' + (user_email || 'Unknown user'),
     '',

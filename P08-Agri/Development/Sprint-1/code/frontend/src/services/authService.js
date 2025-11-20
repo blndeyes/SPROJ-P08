@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-// Resolve backend base URL (works for CRA or Vite)
+// resolve backend base url (works for cra or vite)
 const fromEnv =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
   process.env.REACT_APP_API_BASE_URL
@@ -16,7 +16,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
-// ===== Direct register (no OTP) – kept for compatibility =====
+// direct register (no otp) kept for compatibility
 export const register = async (userData) => {
   try {
     const response = await api.post('/register', userData)
@@ -31,7 +31,7 @@ export const register = async (userData) => {
   }
 }
 
-// ===== OTP-based register =====
+// otp based register
 export const registerWithOtp = async (userData) => {
   try {
     const response = await api.post('/register-otp', userData)
@@ -56,7 +56,7 @@ export const verifyOtp = async ({ email, otp }) => {
   }
 }
 
-// ===== Login =====
+// login
 export const login = async (credentials) => {
   try {
     const response = await api.post('/login', credentials)
@@ -71,7 +71,7 @@ export const login = async (credentials) => {
   }
 }
 
-// ===== Change password (when logged in) =====
+// change password when logged in
 export const getToken = () => localStorage.getItem('token')
 
 export const changePassword = async ({ oldPassword, newPassword }) => {
@@ -98,7 +98,7 @@ export const changePassword = async ({ oldPassword, newPassword }) => {
   }
 }
 
-// ===== Other helpers =====
+// other helpers
 export const logout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('user')

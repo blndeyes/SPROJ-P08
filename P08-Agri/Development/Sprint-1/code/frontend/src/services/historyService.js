@@ -1,3 +1,4 @@
+// resolve backend base url
 const from_env =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
   process.env.REACT_APP_API_URL
@@ -11,6 +12,7 @@ const api_base =
     : (is_vercel ? '' : 'https://sproj-p08-2.onrender.com'))
 
 export async function get_diagnosis_history(limit = 50, skip = 0) {
+  // fetch paged history for the current user
   const token = localStorage.getItem('token')
   if (!token) {
     throw new Error('Not authenticated')
@@ -39,6 +41,7 @@ export async function get_diagnosis_history(limit = 50, skip = 0) {
 }
 
 export async function get_diagnosis_by_id(id) {
+  // fetch a single history entry by id
   const token = localStorage.getItem('token')
   if (!token) {
     throw new Error('Not authenticated')

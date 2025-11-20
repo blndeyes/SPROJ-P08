@@ -9,10 +9,12 @@ import DiagnosticHistory from './pages/dashboard/DiagnosticHistory'
 import './App.css'
 
 function App() {
+  // check if a user token exists
   const isAuthenticated = () => {
     return localStorage.getItem('token') !== null
   }
 
+  // read role from stored user
   const getUserRole = () => {
     const userJson = localStorage.getItem('user')
     if (!userJson) {
@@ -26,6 +28,7 @@ function App() {
     }
   }
 
+  // protect routes and optionally restrict by role
   const PrivateRoute = ({ children, allowedRoles }) => {
     if (!isAuthenticated()) {
       return <Navigate to="/login" />
@@ -34,6 +37,7 @@ function App() {
     if (allowedRoles && allowedRoles.length > 0) {
       const userRole = getUserRole()
       if (!allowedRoles.includes(userRole)) {
+        // redirect user to their home dashboard based on role
         if (userRole === 'farmer') {
           return <Navigate to="/farmer-dashboard" />
         } else if (userRole === 'inspector') {
@@ -47,6 +51,7 @@ function App() {
     return children
   }
 
+  // send user to the right dashboard url
   const DashboardRedirect = () => {
     if (!isAuthenticated()) {
       return <Navigate to="/login" />
@@ -65,11 +70,14 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* public auth routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
 
+        {/* role aware redirect */}
         <Route path="/dashboard" element={<DashboardRedirect />} />
+        {/* farmer only routes */}
         <Route
           path="/farmer-dashboard"
           element={
@@ -86,6 +94,7 @@ function App() {
             </PrivateRoute>
           }
         />
+        {/* inspector or admin routes */}
         <Route
           path="/inspector-dashboard"
           element={
@@ -94,6 +103,7 @@ function App() {
             </PrivateRoute>
           }
         />
+        {/* default route */}
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
