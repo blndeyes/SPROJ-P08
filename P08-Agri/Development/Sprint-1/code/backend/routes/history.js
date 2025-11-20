@@ -5,6 +5,7 @@ const Diagnosis = require('../models/Diagnosis')
 const router = express.Router()
 
 function get_auth_user(request) {
+  // read bearer token and verify it to get user identity
   const auth_header = request.headers.authorization || ''
   if (!auth_header.startsWith('Bearer ')) {
     return null
@@ -21,17 +22,20 @@ function get_auth_user(request) {
   }
 }
 
-// Get all diagnoses for the authenticated user
+// get all diagnoses for the authenticated user
 router.get('/', async (req, res) => {
   try {
+    // require a valid user before accessing history
     const auth_user = get_auth_user(req)
     if (!auth_user) {
       return res.status(401).json({ message: 'Unauthorized' })
     }
 
+    // simple pagination via query params
     const limit = parseInt(req.query.limit) || 50
     const skip = parseInt(req.query.skip) || 0
 
+    // only fetch records that belong to the current user
     const diagnoses = await Diagnosis.find({ user_id: auth_user.userId })
       .sort({ created_at: -1 })
       .limit(limit)
@@ -39,6 +43,7 @@ router.get('/', async (req, res) => {
       .select('-__v')
       .lean()
 
+    // provide a total count for pagination ui
     const total = await Diagnosis.countDocuments({ user_id: auth_user.userId })
 
     res.json({
@@ -48,19 +53,22 @@ router.get('/', async (req, res) => {
       skip
     })
   } catch (error) {
+    // unify error logging and response
     console.error('Error fetching diagnosis history:', error.message || error)
     res.status(500).json({ message: 'Failed to fetch diagnosis history' })
   }
 })
 
-// Get a specific diagnosis by ID
+// get a specific diagnosis by id
 router.get('/:id', async (req, res) => {
   try {
+    // again ensure the user is authenticated
     const auth_user = get_auth_user(req)
     if (!auth_user) {
       return res.status(401).json({ message: 'Unauthorized' })
     }
 
+    // find one record by id that belongs to this user
     const diagnosis = await Diagnosis.findOne({
       _id: req.params.id,
       user_id: auth_user.userId

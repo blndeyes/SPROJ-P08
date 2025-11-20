@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer')
 
+// basic smtp transporter using env config
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT) || 587,
@@ -11,11 +12,13 @@ const transporter = nodemailer.createTransport({
 })
 
 async function send_otp_email(recipient_email, otp) {
+  // if smtp is not configured just log the otp for testing
   if (!process.env.SMTP_USER) {
     console.log('OTP for', recipient_email, 'is', otp)
     return
   }
 
+  // simple email with a plaintext code and expiry note
   const mail_options = {
     from: process.env.EMAIL_FROM || process.env.SMTP_USER,
     to: recipient_email,
@@ -27,6 +30,7 @@ async function send_otp_email(recipient_email, otp) {
 }
 
 async function send_help_email(payload) {
+  // read inputs and normalize to strings
   const subject_raw = payload && payload.subject ? payload.subject : ''
   const message_raw = payload && payload.message ? payload.message : ''
   const user_email = payload && payload.userEmail ? payload.userEmail : ''
@@ -34,8 +38,10 @@ async function send_help_email(payload) {
   const subject = String(subject_raw)
   const message = String(message_raw)
 
+  // the recipient for help requests
   const to_email = '26100370@lums.edu.pk'
 
+  // if smtp is not configured just log the email details
   if (!process.env.SMTP_USER) {
     console.log('Help email (not actually sent). To:', to_email)
     console.log('From user:', user_email)
@@ -44,9 +50,11 @@ async function send_help_email(payload) {
     return
   }
 
+  // prepend a small tag to make filtering easy
   const from_email = process.env.EMAIL_FROM || process.env.SMTP_USER
   const final_subject = '[AgriQual Help] ' + subject
 
+  // construct a simple plaintext body
   const body_lines = [
     'New help request from: ' + (user_email || 'Unknown user'),
     '',
