@@ -1,5 +1,6 @@
 const express = require('express')
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcryptjs')
 const User = require('../models/User')
 const SecurityEvent = require('../models/SecurityEvent')
 const { redis_client } = require('../redis_client')
@@ -209,6 +210,28 @@ router.post('/change-password', async function (request, response) {
         userAgent: request.headers['user-agent'] || '',
         success: true
       })
+    } catch {}
+
+    // Server-side prevent reuse before hashing/save (defense-in-depth with model hook)
+    try {
+      const priorHashes = []
+      if (typeof user.password === 'string' && user.password.length > 0) {
+        priorHashes.push(user.password)
+      }
+      if (Array.isArray(user.passwordHistory) && user.passwordHistory.length > 0) {
+        for (const h of user.passwordHistory) {
+          if (typeof h === 'string' && h.length > 0) {
+            priorHashes.push(h)
+          }
+        }
+      }
+      for (const hash of priorHashes) {
+        const isReuse = await bcrypt.compare(new_password, hash)
+        if (isReuse) {
+          await register_failure(auth_user.userId)
+          return response.status(400).json({ message: 'New password must not match a recent password' })
+        }
+      }
     } catch {}
 
     // set and save the new password, hashing is handled by the model hook
