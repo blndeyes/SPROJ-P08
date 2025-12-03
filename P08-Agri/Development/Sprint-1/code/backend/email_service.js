@@ -1,15 +1,32 @@
 const nodemailer = require('nodemailer')
 
 // basic smtp transporter using env config
+const smtp_port = Number(process.env.SMTP_PORT) || 587
+const smtp_secure =
+  typeof process.env.SMTP_SECURE === 'string'
+    ? process.env.SMTP_SECURE.toLowerCase() === 'true'
+    : smtp_port === 465
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
+  port: smtp_port,
+  secure: smtp_secure,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
   }
 })
+
+// Best-effort verification at startup to catch misconfiguration in logs
+;(async function verifySmtp() {
+  if (!process.env.SMTP_USER) return
+  try {
+    await transporter.verify()
+    // console.log('SMTP connection verified')
+  } catch (e) {
+    console.error('SMTP verification failed:', e && e.message ? e.message : e)
+  }
+})()
 
 async function send_otp_email(recipient_email, otp) {
   // if smtp is not configured just log the otp for testing
