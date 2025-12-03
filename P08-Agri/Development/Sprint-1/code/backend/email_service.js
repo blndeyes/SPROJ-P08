@@ -1,35 +1,7 @@
-const nodemailer = require('nodemailer')
 const axios = require('axios')
 
-// basic smtp transporter using env config
-const smtp_port = Number(process.env.SMTP_PORT) || 587
-const smtp_secure =
-  typeof process.env.SMTP_SECURE === 'string'
-    ? process.env.SMTP_SECURE.toLowerCase() === 'true'
-    : smtp_port === 465
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: smtp_port,
-  secure: smtp_secure,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-})
-
 function resolve_from_email() {
-  return process.env.EMAIL_FROM || process.env.SMTP_USER || ''
-}
-
-function get_email_provider() {
-  const provider_raw = (process.env.EMAIL_PROVIDER || '').toLowerCase().trim()
-  if (provider_raw === 'smtp') return 'smtp'
-  if (provider_raw === 'sendgrid') return 'sendgrid'
-  // Auto-detect if not specified: prefer SMTP when configured, else SendGrid
-  if (process.env.SMTP_USER) return 'smtp'
-  if (process.env.SENDGRID_API_KEY) return 'sendgrid'
-  return 'none'
+  return process.env.EMAIL_FROM || ''
 }
 
 async function send_via_sendgrid(to, subject, text) {
@@ -66,56 +38,11 @@ async function send_via_sendgrid(to, subject, text) {
 }
 
 async function send_email(to, subject, text) {
-  const provider = get_email_provider()
-  if (provider === 'smtp') {
-    if (!process.env.SMTP_USER) {
-      console.error('SMTP chosen but SMTP_USER not set; email not sent')
-    } else {
-      const mail_options = {
-        from: resolve_from_email(),
-        to,
-        subject,
-        text
-      }
-      await transporter.sendMail(mail_options)
-      return
-    }
-  }
-  if (provider === 'sendgrid') {
-    const ok = await send_via_sendgrid(to, subject, text)
-    if (ok) return
-    console.error('SendGrid sending failed or not configured; email not sent')
-    return
-  }
-  // Auto-detect fallback (if EMAIL_PROVIDER not set)
-  if (process.env.SMTP_USER) {
-    const mail_options = {
-      from: resolve_from_email(),
-      to,
-      subject,
-      text
-    }
-    await transporter.sendMail(mail_options)
-    return
-  }
-  if (process.env.SENDGRID_API_KEY) {
-    const ok = await send_via_sendgrid(to, subject, text)
-    if (ok) return
-  }
-  // Development fallback
-  console.log('[DEV EMAIL - not sent]', { to, subject, text })
+  // Only SendGrid; no SMTP fallback
+  const ok = await send_via_sendgrid(to, subject, text)
+  if (ok) return
+  console.error('SendGrid not configured or send failed; email not sent')
 }
-
-// Best-effort verification at startup to catch misconfiguration in logs
-;(async function verifySmtp() {
-  if (!process.env.SMTP_USER) return
-  try {
-    await transporter.verify()
-    // console.log('SMTP connection verified')
-  } catch (e) {
-    console.error('SMTP verification failed:', e && e.message ? e.message : e)
-  }
-})()
 
 async function send_otp_email(recipient_email, otp) {
   const subject = 'Your AgriQual verification code'
