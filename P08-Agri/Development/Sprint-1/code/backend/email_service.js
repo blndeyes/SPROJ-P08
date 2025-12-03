@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer')
+const axios = require('axios')
 
 // basic smtp transporter using env config
 const smtp_port = Number(process.env.SMTP_PORT) || 587
@@ -17,6 +18,64 @@ const transporter = nodemailer.createTransport({
   }
 })
 
+function resolve_from_email() {
+  return process.env.EMAIL_FROM || process.env.SMTP_USER || ''
+}
+
+async function send_via_sendgrid(to, subject, text) {
+  const api_key = process.env.SENDGRID_API_KEY
+  if (!api_key) return false
+
+  const from_email = resolve_from_email()
+  if (!from_email) {
+    console.error('SENDGRID: EMAIL_FROM or SMTP_USER is required as sender address')
+    return false
+  }
+
+  try {
+    const url = 'https://api.sendgrid.com/v3/mail/send'
+    const payload = {
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: from_email },
+      subject,
+      content: [{ type: 'text/plain', value: text }]
+    }
+    await axios.post(url, payload, {
+      headers: {
+        Authorization: 'Bearer ' + api_key,
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000
+    })
+    return true
+  } catch (e) {
+    const msg = e && e.response && e.response.data ? JSON.stringify(e.response.data) : (e && e.message ? e.message : e)
+    console.error('SendGrid send failed:', msg)
+    return false
+  }
+}
+
+async function send_email(to, subject, text) {
+  // Prefer SendGrid API if configured (some hosts block SMTP)
+  const via_sendgrid_ok = await send_via_sendgrid(to, subject, text)
+  if (via_sendgrid_ok) return
+
+  // Fallback to SMTP if configured
+  if (process.env.SMTP_USER) {
+    const mail_options = {
+      from: resolve_from_email(),
+      to,
+      subject,
+      text
+    }
+    await transporter.sendMail(mail_options)
+    return
+  }
+
+  // Development fallback
+  console.log('[DEV EMAIL - not sent]', { to, subject, text })
+}
+
 // Best-effort verification at startup to catch misconfiguration in logs
 ;(async function verifySmtp() {
   if (!process.env.SMTP_USER) return
@@ -29,21 +88,9 @@ const transporter = nodemailer.createTransport({
 })()
 
 async function send_otp_email(recipient_email, otp) {
-  // if smtp is not configured just log the otp for testing
-  if (!process.env.SMTP_USER) {
-    console.log('OTP for', recipient_email, 'is', otp)
-    return
-  }
-
-  // simple email with a plaintext code and expiry note
-  const mail_options = {
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
-    to: recipient_email,
-    subject: 'Your AgriQual verification code',
-    text: 'Your verification code is ' + otp + '. It will expire in 10 minutes.'
-  }
-
-  await transporter.sendMail(mail_options)
+  const subject = 'Your AgriQual verification code'
+  const text = 'Your verification code is ' + otp + '. It will expire in 10 minutes.'
+  await send_email(recipient_email, subject, text)
 }
 
 async function send_help_email(payload) {
@@ -58,17 +105,7 @@ async function send_help_email(payload) {
   // the recipient for help requests
   const to_email = '26100370@lums.edu.pk'
 
-  // if smtp is not configured just log the email details
-  if (!process.env.SMTP_USER) {
-    console.log('Help email (not actually sent). To:', to_email)
-    console.log('From user:', user_email)
-    console.log('Subject:', subject)
-    console.log('Message:', message)
-    return
-  }
-
   // prepend a small tag to make filtering easy
-  const from_email = process.env.EMAIL_FROM || process.env.SMTP_USER
   const final_subject = '[AgriQual Help] ' + subject
 
   // construct a simple plaintext body
@@ -82,24 +119,10 @@ async function send_help_email(payload) {
   ]
   const body_text = body_lines.join('\n')
 
-  const mail_options = {
-    from: from_email,
-    to: to_email,
-    subject: final_subject,
-    text: body_text
-  }
-
-  await transporter.sendMail(mail_options)
+  await send_email(to_email, final_subject, body_text)
 }
 
 async function send_password_change_email(recipient_email) {
-  // If SMTP is not configured, log for development only
-  if (!process.env.SMTP_USER) {
-    console.log('Password change notification (not actually sent). To:', recipient_email)
-    return
-  }
-
-  const from_email = process.env.EMAIL_FROM || process.env.SMTP_USER
   const subject = 'Your AgriQual password was changed'
   const body_lines = [
     'Hello,',
@@ -110,13 +133,7 @@ async function send_password_change_email(recipient_email) {
     '',
     '— AgriQual Security'
   ]
-  const mail_options = {
-    from: from_email,
-    to: recipient_email,
-    subject,
-    text: body_lines.join('\n')
-  }
-  await transporter.sendMail(mail_options)
+  await send_email(recipient_email, subject, body_lines.join('\n'))
 }
 
 module.exports = {
