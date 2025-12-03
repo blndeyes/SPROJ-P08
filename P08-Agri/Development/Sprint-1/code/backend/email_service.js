@@ -22,6 +22,16 @@ function resolve_from_email() {
   return process.env.EMAIL_FROM || process.env.SMTP_USER || ''
 }
 
+function get_email_provider() {
+  const provider_raw = (process.env.EMAIL_PROVIDER || '').toLowerCase().trim()
+  if (provider_raw === 'smtp') return 'smtp'
+  if (provider_raw === 'sendgrid') return 'sendgrid'
+  // Auto-detect if not specified: prefer SMTP when configured, else SendGrid
+  if (process.env.SMTP_USER) return 'smtp'
+  if (process.env.SENDGRID_API_KEY) return 'sendgrid'
+  return 'none'
+}
+
 async function send_via_sendgrid(to, subject, text) {
   const api_key = process.env.SENDGRID_API_KEY
   if (!api_key) return false
@@ -56,11 +66,28 @@ async function send_via_sendgrid(to, subject, text) {
 }
 
 async function send_email(to, subject, text) {
-  // Prefer SendGrid API if configured (some hosts block SMTP)
-  const via_sendgrid_ok = await send_via_sendgrid(to, subject, text)
-  if (via_sendgrid_ok) return
-
-  // Fallback to SMTP if configured
+  const provider = get_email_provider()
+  if (provider === 'smtp') {
+    if (!process.env.SMTP_USER) {
+      console.error('SMTP chosen but SMTP_USER not set; email not sent')
+    } else {
+      const mail_options = {
+        from: resolve_from_email(),
+        to,
+        subject,
+        text
+      }
+      await transporter.sendMail(mail_options)
+      return
+    }
+  }
+  if (provider === 'sendgrid') {
+    const ok = await send_via_sendgrid(to, subject, text)
+    if (ok) return
+    console.error('SendGrid sending failed or not configured; email not sent')
+    return
+  }
+  // Auto-detect fallback (if EMAIL_PROVIDER not set)
   if (process.env.SMTP_USER) {
     const mail_options = {
       from: resolve_from_email(),
@@ -71,7 +98,10 @@ async function send_email(to, subject, text) {
     await transporter.sendMail(mail_options)
     return
   }
-
+  if (process.env.SENDGRID_API_KEY) {
+    const ok = await send_via_sendgrid(to, subject, text)
+    if (ok) return
+  }
   // Development fallback
   console.log('[DEV EMAIL - not sent]', { to, subject, text })
 }
