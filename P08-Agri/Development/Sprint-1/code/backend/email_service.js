@@ -75,7 +75,35 @@ async function send_help_email(payload) {
   await transporter.sendMail(mail_options)
 }
 
+async function send_password_change_email(recipient_email) {
+  // If SMTP is not configured, log for development only
+  if (!process.env.SMTP_USER) {
+    console.log('Password change notification (not actually sent). To:', recipient_email)
+    return
+  }
+
+  const from_email = process.env.EMAIL_FROM || process.env.SMTP_USER
+  const subject = 'Your AgriQual password was changed'
+  const body_lines = [
+    'Hello,',
+    '',
+    'This is a confirmation that your account password was changed.',
+    '',
+    'If you did not make this change, please reset your password immediately and contact support.',
+    '',
+    '— AgriQual Security'
+  ]
+  const mail_options = {
+    from: from_email,
+    to: recipient_email,
+    subject,
+    text: body_lines.join('\n')
+  }
+  await transporter.sendMail(mail_options)
+}
+
 module.exports = {
   send_otp_email,
-  send_help_email
+  send_help_email,
+  send_password_change_email
 }
