@@ -244,7 +244,11 @@ router.post('/change-password', async function (request, response) {
       if (user && user.email) {
         await send_password_change_email(user.email)
       }
-    } catch {}
+    } catch (e) {
+      // Log only a concise error to help operators debug SMTP issues
+      const emsg = e && e.message ? e.message : e
+      console.error('Password change email failed:', emsg)
+    }
 
     return response.json({ message: 'Password changed successfully' })
   } catch (error) {
