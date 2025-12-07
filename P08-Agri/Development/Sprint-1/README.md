@@ -27,7 +27,7 @@ LIST OF REQUIREMENTS COMPLETED IN THE SPRINT
 - **UC-020 – Change Password:** Syeda Umaima Hasan, Mishaal Usman
 - **UC-006 – view diagnosis history:** M. Walid Khalid
 - **Deployment:** Zarak Qadir Khan, Mishaal Usman, Syeda Umaima Hasan
-- **PHASE 2**
+  **PHASE 2**
 - **UC-002 – Secure Login STRIDE:** Zarak Qadir Khan
 - **UC-010 – Contact Support STRIDE:** Syeda Umaima Hasan
 - **UC-020 – Change Password STRIDE:** Mishaal Usman
