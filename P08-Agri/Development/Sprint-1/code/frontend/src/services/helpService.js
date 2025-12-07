@@ -1,3 +1,4 @@
+// frontend/src/services/helpService.js
 import axios from 'axios'
 import { getToken } from './authService'
 
@@ -15,6 +16,7 @@ const help_api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
+// Sends help/complaint request to support team
 export async function send_complaint(payload) {
   const token = getToken()
   if (!token) {
@@ -24,23 +26,62 @@ export async function send_complaint(payload) {
   const subject = payload && payload.subject ? String(payload.subject).trim() : ''
   const message = payload && payload.message ? String(payload.message).trim() : ''
 
-  if (!subject || !message) {
+  if (!subject && !message) {
     throw new Error('Subject and message are required')
+  }
+  if (!subject) {
+    throw new Error('Subject is required')
+  }
+  if (!message) {
+    throw new Error('Message is required')
   }
 
   try {
     const response = await help_api.post(
       '/complaints',
       { subject, message },
-      { headers: { Authorization: 'Bearer ' + token } }
+      {
+        headers: {
+          Authorization: 'Bearer ' + token
+        }
+      }
     )
     return response.data
   } catch (error) {
-    const message_text =
+    const status = error && error.response && error.response.status
+    let message_text =
       (error &&
         error.response &&
-        (error.response.data && (error.response.data.message || error.response.data.error))) ||
+        error.response.data &&
+        (error.response.data.message || error.response.data.error)) ||
       'Failed to send help request'
+
+    if (status === 429) {
+      const raw_seconds =
+        error &&
+        error.response &&
+        error.response.data &&
+        Number(error.response.data.retryAfterSeconds)
+      if (!Number.isNaN(raw_seconds) && raw_seconds > 0) {
+        const minutes = Math.floor(raw_seconds / 60)
+        const seconds = raw_seconds % 60
+        let time_part = ''
+        if (minutes > 0) {
+          time_part += `${minutes} minute${minutes === 1 ? '' : 's'}`
+        }
+        if (seconds > 0) {
+          if (time_part) {
+            time_part += ' and '
+          }
+          time_part += `${seconds} second${seconds === 1 ? '' : 's'}`
+        }
+        if (!time_part) {
+          time_part = `${raw_seconds} seconds`
+        }
+        message_text = `${message_text} You can try again in approximately ${time_part}.`
+      }
+    }
+
     throw new Error(message_text)
   }
 }

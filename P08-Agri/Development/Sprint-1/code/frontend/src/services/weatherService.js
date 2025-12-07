@@ -10,6 +10,7 @@ const isVercel = /\.vercel\.app$/.test(window.location.hostname)
 const API_BASE =
   fromEnv || (isLocalhost ? 'http://localhost:5000' : (isVercel ? '' : 'https://sproj-p08-2.onrender.com'));
 
+// Fetches weather data for given coordinates
 export async function fetch_weather_by_coords(latitude, longitude) {
   const url = `${API_BASE}/api/weather?lat=${encodeURIComponent(
     latitude

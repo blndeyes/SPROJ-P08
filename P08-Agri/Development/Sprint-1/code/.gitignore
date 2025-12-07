@@ -1,12 +1,4 @@
-﻿node_modules/
-.DS_Store
-.env
-backend/node_modules/
-frontend/node_modules/
-backend/.env
-frontend/.env
-
-# secrets
+﻿# secrets
 *.env
 *.env.*
 !.env.example
@@ -20,3 +12,4 @@ frontend/build/
 backend/ml/artifacts/*.pt
 backend/ml/artifacts/*.pth
 backend/ml/artifacts/*.onnx
+.DS_Store

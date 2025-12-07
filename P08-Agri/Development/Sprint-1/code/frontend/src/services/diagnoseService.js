@@ -8,6 +8,7 @@ const default_base = is_localhost ? 'http://localhost:5000' : (is_vercel ? '' : 
 
 const preferred_base = from_env || default_base
 
+// Attempts to send image diagnosis request to specified base URL
 async function try_post_diagnose(base_url, file) {
   const form = new FormData()
   form.append('image', file)
@@ -30,6 +31,7 @@ async function try_post_diagnose(base_url, file) {
   return { response, json }
 }
 
+// Diagnoses wheat image using ML service with fallback URL support
 export async function diagnose_image(file) {
   // Try configured base first; on 404/network error, fall back to default Render API
   const bases_to_try = preferred_base === default_base ? [preferred_base] : [preferred_base, default_base]

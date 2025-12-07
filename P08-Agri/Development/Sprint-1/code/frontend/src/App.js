@@ -9,10 +9,12 @@ import DiagnosticHistory from './pages/dashboard/DiagnosticHistory'
 import './App.css'
 
 function App() {
+  // Checks if user is authenticated
   const isAuthenticated = () => {
     return localStorage.getItem('token') !== null
   }
 
+  // Gets user role from localStorage
   const getUserRole = () => {
     const userJson = localStorage.getItem('user')
     if (!userJson) {
@@ -26,6 +28,7 @@ function App() {
     }
   }
 
+  // Protects routes requiring authentication and specific roles
   const PrivateRoute = ({ children, allowedRoles }) => {
     if (!isAuthenticated()) {
       return <Navigate to="/login" />
@@ -47,6 +50,7 @@ function App() {
     return children
   }
 
+  // Redirects to appropriate dashboard based on user role
   const DashboardRedirect = () => {
     if (!isAuthenticated()) {
       return <Navigate to="/login" />
