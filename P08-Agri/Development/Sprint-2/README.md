@@ -5,22 +5,18 @@ Team:
 - **26100247** Mishaal Usman  
 - **26100259** Muhammad Walid Khalid  
 
-SPRINT-1 SUBMISSION GUIDELINES
-
-1. Properly tested working system deployed on an online hosting platform.
-2. Code with secure coding practices and readable comments uploaded in “Development/Sprint-1” folder of your project’s Github repository. 
-3. 3-4 minutes video that explains the functionality of your system developed so far. This must be uploaded in “Sprint-1” folder of your project’s Github repository.
-4. Updated architecture and data model must be uploaded in the respective folders on Github.
-5. Test case execution report. 
-6. Updated project schedule in Github.  
-7. This "Readme" file must be uploaded in Sprint-1 folder. 
-
-
-
 ------------------------------------------------------------------------------------------------
 
 LIST OF REQUIREMENTS COMPLETED IN THE SPRINT
 
+Admin Dashboard (Complaints + Query Resolution): Mishaal Usman
+Email to All Users / Specific Users (Admin Feature): Mishaal Usman
+URL Security / Role-Based Dashboard Access: Mishaal Usman
+Urdu Dashboards (All Existing Designs Translated): Syeda Umaima Hasan, Waleed
+Language Toggle Button (English ⇄ Urdu): Syeda Umaima Hasan, Waleed
+Weather Advisory Urdu Translation + Toggle: Syeda Umaima Hasan, Waleed
+RAG Pipeline Implementation (Focus item from meeting): Zarak Qadir Khan
+Docker Compatibility (as per Sir’s email guidelines): Zarak Qadir Khan
 
 - **UC-002 – Secure Login:** Muhammad Walid Khalid  
 - **UC-010 – Contact Support:** Zarak Qadir Khan  
