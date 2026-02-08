@@ -88,6 +88,13 @@ function FarmerDashboard() {
   const [chat_error_text, set_chat_error_text] = useState('')
 
   const [is_scan_modal_open, set_is_scan_modal_open] = useState(false)
+  const [is_weather_modal_open, set_is_weather_modal_open] = useState(false)
+
+  /* Auto-fetch weather on mount */
+  useEffect(() => {
+    handle_get_weather()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
 
   function handle_logout() {
@@ -124,6 +131,10 @@ function FarmerDashboard() {
     } finally {
       set_is_getting_weather(false)
     }
+  }
+
+  function close_weather_modal() {
+    set_is_weather_modal_open(false)
   }
 
   function handle_click_upload_button() {
@@ -318,6 +329,13 @@ function FarmerDashboard() {
   const userName = user?.name || 'Farmer'
   const userInitial = (userName.charAt(0) || 'F').toUpperCase()
 
+  const scan_history = [
+    { status: 'healthy' }, { status: 'healthy' }, { status: 'issue' },
+    { status: 'healthy' }, { status: 'healthy' }, { status: 'healthy' },
+    { status: 'issue' }, { status: 'healthy' }, { status: 'healthy' },
+    { status: 'issue' }, { status: 'healthy' }, { status: 'healthy' },
+  ]
+
   /* ─── RENDER ─── */
   return (
     <div dir={direction} className="min-h-screen bg-[#f7fdf9]">
@@ -382,136 +400,145 @@ function FarmerDashboard() {
       {/* ─── MAIN ─── */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* ─── HEADING ─── */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-emerald-800">
             {t.farmerDashboard.welcome}, {userName}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">{t.farmerDashboard.manageFarmsSubtitle || 'Manage your fields, scan crops, and track your harvest health.'}</p>
         </div>
 
-        {/* ─── ACTION CARDS ─── */}
-        <div className="space-y-4">
-          {/* CARD 1: Upload Wheat Image */}
+        {/* ─── TOP ROW: Upload (left) | Weather + Quick Actions (right) ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+
+          {/* ── LEFT: Upload Card ── */}
           <button
             type="button"
             onClick={handle_click_upload_button}
-            className="w-full bg-white rounded-xl shadow-sm border border-[#2D6A4F] p-6 text-left hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all flex flex-row items-center gap-4 cursor-pointer"
+            className="lg:col-span-3 bg-white rounded-2xl border border-[#D5DDD0] p-8 flex flex-col items-center justify-center text-center min-h-[320px] hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all cursor-pointer group"
           >
-            <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg className="h-6 w-6 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            <div className="h-16 w-16 rounded-2xl bg-[#EDF2E8] flex items-center justify-center mb-4 group-hover:bg-[#D5DDD0] transition-colors">
+              <svg className="h-8 w-8 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
             </div>
-            <div className="flex-1 min-w-0 text-left">
-              <h2 className="text-lg font-semibold text-gray-900">{t.farmerDashboard.uploadImage}</h2>
-              <p className="text-sm text-gray-500 mt-0.5">{t.farmerDashboard.dropImageText || 'Drop an image or click to browse'}</p>
-            </div>
-            <span className="flex items-center gap-1 text-[#2D6A4F] font-medium text-sm flex-shrink-0">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              Open
-            </span>
+            <h2 className="text-lg font-bold text-gray-900">{t.farmerDashboard.uploadImage}</h2>
+            <p className="text-sm text-gray-500 mt-1">{t.farmerDashboard.dropImageText || 'Drop an image or click to browse'}</p>
           </button>
 
-          {/* CARD 2: Current Weather */}
-          {!weather_data && (
-            <button
-              type="button"
-              onClick={handle_get_weather}
-              disabled={is_getting_weather}
-              className="w-full bg-white rounded-xl shadow-sm border border-[#2D6A4F] p-6 text-left hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all flex flex-row items-center gap-4 cursor-pointer disabled:opacity-60"
-            >
-            <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg className="h-6 w-6 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
-              </svg>
-            </div>
-              <div className="flex-1 min-w-0 text-left">
-                <h2 className="text-lg font-semibold text-gray-900">{t.farmerDashboard.currentWeather}</h2>
-                <p className="text-sm text-gray-500 mt-0.5">{t.farmerDashboard.checkWeatherSubtitle || 'Check today\'s conditions for your area'}</p>
-              </div>
-              <div className="px-4 py-2 bg-[#2D6A4F] text-white rounded-lg text-sm font-medium hover:bg-[#1a4d35]">
-                {is_getting_weather ? t.farmerDashboard.gettingWeather : t.farmerDashboard.getWeather}
-              </div>
-            </button>
-          )}
+          {/* ── RIGHT: Weather + Quick Actions ── */}
+          <div className="lg:col-span-2 flex flex-col gap-4">
 
-          {/* CARD 2 EXPANDED: Weather Details */}
-          {weather_data && (
-            <section className="bg-white rounded-xl shadow-sm border border-[#2D6A4F] overflow-hidden">
-              <div className="px-6 py-4 border-b border-[#2D6A4F] flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => set_weather_data(null)}
-                  className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500"
-                  aria-label="Close"
-                >
-                  <svg className="h-5 w-5 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+            {/* Weather Widget */}
+            <div className="bg-white rounded-2xl border border-[#D5DDD0] p-5 flex-1">
+              {/* Loading state */}
+              {is_getting_weather && !weather_data && (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D6A4F]"></div>
+                </div>
+              )}
+
+              {/* Error state */}
+              {weather_error && !weather_data && (
+                <div className="text-center py-4">
+                  <p className="text-sm text-red-600 mb-3">{weather_error}</p>
+                  <button type="button" onClick={handle_get_weather} disabled={is_getting_weather}
+                    className="px-4 py-2 bg-[#2D6A4F] text-white rounded-lg text-sm font-medium hover:bg-[#1a4d35]">
+                    {t.farmerDashboard.getWeather || 'Try Again'}
+                  </button>
+                </div>
+              )}
+
+              {/* Weather data */}
+              {weather_data && (
+                <>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">{t.farmerDashboard.currentWeather}</p>
+                      <p className="text-sm text-gray-600 mt-0.5">{weather_data.city}</p>
+                    </div>
+                    <span className="text-3xl font-bold text-gray-900">{weather_data.current.temperature_c}°</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{t.farmerDashboard.windSpeed || 'Windspeed'}</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{weather_data.current.wind_speed_kmh} <span className="text-xs font-normal text-gray-500">km/h</span></p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{t.farmerDashboard.rain || 'Rain'}</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{weather_data.today.precipitation_mm || 0} <span className="text-xs font-normal text-gray-500">mm</span></p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{t.farmerDashboard.uvIndex || 'UV'}</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{weather_data.today.uv_index_max}</p>
+                    </div>
+                  </div>
+                  {weather_data.advice && weather_data.advice.length > 0 && (
+                    <div className="bg-[#FEF9E7] rounded-lg p-3">
+                      <p className="text-xs font-bold text-[#92400E] mb-0.5">{t.farmerDashboard.tip || 'Tip'}</p>
+                      <p className="text-xs text-[#78350F] leading-relaxed">{weather_data.advice[0]}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Initial state - not yet fetched */}
+              {!weather_data && !weather_error && !is_getting_weather && (
+                <button type="button" onClick={handle_get_weather}
+                  className="w-full text-center py-6">
+                  <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">{t.farmerDashboard.currentWeather}</p>
+                  <p className="text-sm text-[#2D6A4F] font-medium">{t.farmerDashboard.getWeather}</p>
                 </button>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">{t.farmerDashboard.currentWeather}</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">{weather_data.city}</p>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                    <p className="text-xs uppercase text-gray-500 font-medium mb-1">Temp</p>
-                    <p className="text-2xl font-bold text-gray-900">{weather_data.current.temperature_c}°</p>
-                    <p className="text-xs text-gray-500 mt-1">{weather_data.current.condition}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                    <p className="text-xs uppercase text-gray-500 font-medium mb-1">{t.farmerDashboard.windSpeed || 'Wind'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{weather_data.current.wind_speed_kmh}</p>
-                    <p className="text-xs text-gray-500 mt-1">km/h</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                    <p className="text-xs uppercase text-gray-500 font-medium mb-1">{t.farmerDashboard.humidity || 'Humidity'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{weather_data.current.humidity}</p>
-                    <p className="text-xs text-gray-500 mt-1">%</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                    <p className="text-xs uppercase text-gray-500 font-medium mb-1">{t.farmerDashboard.uvIndex || 'UV'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{weather_data.today.uv_index_max}</p>
-                    <p className="text-xs text-gray-500 mt-1">Index</p>
-                  </div>
-                </div>
-                {weather_data.advice && weather_data.advice.length > 0 && (
-                  <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                    <p className="text-sm font-semibold text-yellow-900 mb-1">Tip</p>
-                    <p className="text-sm text-yellow-800 leading-relaxed">{weather_data.advice[0]}</p>
-                  </div>
-                )}
-                {weather_data.llm_advice && (
-                  <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm font-semibold text-[#2D6A4F] mb-1">{t.farmerDashboard.aiAssistant}</p>
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{weather_data.llm_advice}</p>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
+              )}
+            </div>
 
-          {weather_error && (
-            <div className="text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{weather_error}</div>
-          )}
+            {/* Quick Action: View History + Need Help side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => navigate('/diagnostic-history')}
+                className="bg-white rounded-2xl border border-[#D5DDD0] p-4 text-left hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                <div className="h-9 w-9 rounded-lg bg-[#EDF2E8] flex items-center justify-center mb-3">
+                  <svg className="h-4.5 w-4.5 text-[#2D6A4F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-bold text-gray-900">{t.farmerDashboard.viewHistory}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{t.farmerDashboard.pastScans}</p>
+              </button>
+              <button
+                type="button"
+                onClick={open_help_modal}
+                className="bg-white rounded-2xl border border-[#D5DDD0] p-4 text-left hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                <div className="h-9 w-9 rounded-lg bg-[#FEF3E0] flex items-center justify-center mb-3">
+                  <svg className="h-4.5 w-4.5 text-[#F59E0B]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <h3 className="text-sm font-bold text-gray-900">{t.farmerDashboard.needHelp}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{t.farmerDashboard.contactSupport}</p>
+              </button>
+            </div>
+          </div>
+        </div>
 
-          {/* CARD 3: My Wheat Fields (always expanded) */}
-          <section className="bg-white rounded-xl shadow-sm border border-[#2D6A4F] overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#2D6A4F] flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">{t.farmerDashboard.myWheatFields}</h2>
+        {/* ─── BOTTOM ROW: Fields (left) | Recent Scans (right) ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+          {/* ── LEFT: My Wheat Fields ── */}
+          <div className="lg:col-span-3 bg-white rounded-2xl border border-[#D5DDD0] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#D5DDD0] flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900">{t.farmerDashboard.myWheatFields}</h2>
               <button type="button" className="text-sm text-[#2D6A4F] font-medium hover:underline">
                 + {t.farmerDashboard.addNewField}
               </button>
             </div>
-            <div className="p-6 divide-y divide-gray-100">
+            <div className="px-6 divide-y divide-gray-100">
               {fields.map((field) => {
                 const isAlert = field.status === 'attention'
                 return (
-                  <div key={field.name} className="py-4 first:pt-0 last:pb-0">
+                  <div key={field.name} className="py-4 first:pt-4 last:pb-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">{field.name}</span>
@@ -527,7 +554,6 @@ function FarmerDashboard() {
                       </div>
                       <span className="text-xs text-gray-500">{field.area} · {field.variety}</span>
                     </div>
-                    {/* Health bar */}
                     <div className="w-full h-2 rounded-full bg-gray-100">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${isAlert ? 'bg-[#F59E0B]' : 'bg-[#2D6A4F]'}`}
@@ -538,53 +564,27 @@ function FarmerDashboard() {
                 )
               })}
             </div>
-          </section>
+          </div>
 
-          {/* CARD 4: View History */}
-          <button
-            type="button"
-            onClick={() => navigate('/diagnostic-history')}
-            className="w-full bg-white rounded-xl shadow-sm border border-[#2D6A4F] p-6 text-left hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all flex flex-row items-center gap-4 cursor-pointer"
-          >
-            <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg className="h-6 w-6 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          {/* ── RIGHT: Recent Scans ── */}
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-[#D5DDD0] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#D5DDD0] flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900">{t.farmerDashboard.recentScans || 'Recent Scans'}</h2>
+              <button type="button" onClick={() => navigate('/diagnostic-history')} className="text-sm text-[#2D6A4F] font-medium hover:underline">
+                {t.farmerDashboard.viewAll || 'View all'}
+              </button>
             </div>
-            <div className="flex-1 min-w-0 text-left">
-              <h2 className="text-lg font-semibold text-gray-900">{t.farmerDashboard.viewHistory}</h2>
-              <p className="text-sm text-gray-500 mt-0.5">{t.farmerDashboard.pastScans}</p>
+            <div className="p-6">
+              <div className="grid grid-cols-6 gap-2">
+                {scan_history.map((scan, i) => (
+                  <div
+                    key={`scan-${i}`}
+                    className={`aspect-square rounded-lg ${scan.status === 'issue' ? 'bg-red-200' : 'bg-green-100'}`}
+                  ></div>
+                ))}
+              </div>
             </div>
-            <span className="flex items-center gap-1 text-[#2D6A4F] font-medium text-sm flex-shrink-0">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              Open
-            </span>
-          </button>
-
-          {/* CARD 5: Need Help */}
-          <button
-            type="button"
-            onClick={open_help_modal}
-            className="w-full bg-white rounded-xl shadow-sm border border-[#2D6A4F] p-6 text-left hover:shadow-lg hover:border-[#1a4d35] hover:-translate-y-0.5 transition-all flex flex-row items-center gap-4 cursor-pointer"
-          >
-            <div className="h-12 w-12 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
-              <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <h2 className="text-lg font-semibold text-gray-900">{t.farmerDashboard.needHelp}</h2>
-              <p className="text-sm text-gray-500 mt-0.5">{t.farmerDashboard.contactSupport}</p>
-            </div>
-            <span className="flex items-center gap-1 text-[#2D6A4F] font-medium text-sm flex-shrink-0">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              Open
-            </span>
-          </button>
+          </div>
         </div>
       </main>
 
@@ -670,7 +670,7 @@ function FarmerDashboard() {
       {/* ─── SCAN MODAL ─── */}
       {is_scan_modal_open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between rounded-t-xl">
               <h2 className="text-lg font-bold text-gray-900">{t.farmerDashboard.diagnosisResults || 'Diagnosis Results'}</h2>
@@ -783,6 +783,94 @@ function FarmerDashboard() {
                     </button>
                   </form>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── WEATHER MODAL ─── */}
+      {is_weather_modal_open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">{t.farmerDashboard.currentWeather}</h2>
+              <button
+                type="button"
+                onClick={close_weather_modal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Loading */}
+              {is_getting_weather && (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#2D6A4F]"></div>
+                </div>
+              )}
+
+              {/* Error */}
+              {weather_error && (
+                <div className="text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-lg mb-4">
+                  {weather_error}
+                </div>
+              )}
+
+              {/* Weather Data */}
+              {weather_data && (
+                <>
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500">{weather_data.city}</p>
+                    <div className="flex items-baseline gap-3 mt-1">
+                      <span className="text-5xl font-bold text-gray-900">{weather_data.current.temperature_c}°</span>
+                      <span className="text-sm text-gray-500">{weather_data.current.condition}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">{t.farmerDashboard.windSpeed || 'Wind'}</p>
+                      <p className="text-lg font-bold text-gray-900 mt-1">{weather_data.current.wind_speed_kmh} <span className="text-xs font-normal text-gray-500">km/h</span></p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">{t.farmerDashboard.humidity || 'Humidity'}</p>
+                      <p className="text-lg font-bold text-gray-900 mt-1">{weather_data.current.humidity}<span className="text-xs font-normal text-gray-500">%</span></p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">{t.farmerDashboard.uvIndex || 'UV'}</p>
+                      <p className="text-lg font-bold text-gray-900 mt-1">{weather_data.today.uv_index_max}</p>
+                    </div>
+                  </div>
+                  {weather_data.advice && weather_data.advice.length > 0 && (
+                    <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                      <p className="text-sm font-semibold text-yellow-900 mb-1">Tip</p>
+                      <p className="text-sm text-yellow-800 leading-relaxed">{weather_data.advice[0]}</p>
+                    </div>
+                  )}
+                  {weather_data.llm_advice && (
+                    <div className="mt-3 bg-white border border-gray-200 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-[#2D6A4F] mb-1">{t.farmerDashboard.aiAssistant}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{weather_data.llm_advice}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Retry button if error */}
+              {weather_error && !is_getting_weather && (
+                <button
+                  type="button"
+                  onClick={handle_get_weather}
+                  className="w-full py-2 bg-[#2D6A4F] text-white rounded-lg hover:bg-[#1a4d35] font-medium text-sm"
+                >
+                  {t.farmerDashboard.getWeather || 'Try Again'}
+                </button>
               )}
             </div>
           </div>
