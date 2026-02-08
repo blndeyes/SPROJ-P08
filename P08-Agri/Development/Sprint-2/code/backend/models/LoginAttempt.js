@@ -25,6 +25,12 @@ const login_attempt_schema = new mongoose.Schema(
     },
     reason: {
       type: String
+    },
+    // STRIDE Repudiation: 'password' | 'google' for audit trail
+    method: {
+      type: String,
+      enum: ['password', 'google'],
+      default: 'password'
     }
   },
   {

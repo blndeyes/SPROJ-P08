@@ -2,13 +2,12 @@ const express = require('express')
 const axios = require('axios')
 const multer = require('multer')
 const FormData = require('form-data')
-const jwt = require('jsonwebtoken')
 const rateLimit = require('express-rate-limit')
 const Diagnosis = require('../models/Diagnosis')
+const { requireAuth, requireRole } = require('../middleware/auth')
 
 const router = express.Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } })
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
 const diagnose_limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -17,24 +16,6 @@ const diagnose_limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 })
-
-function get_auth_user(request) {
-  const auth_header = request.headers.authorization || ''
-  if (!auth_header.startsWith('Bearer ')) {
-    return null
-  }
-  const token = auth_header.slice(7)
-  if (!token) {
-    return null
-  }
-  try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    return payload
-  } catch (error) {
-    console.error('JWT verification failed:', error.message)
-    return null
-  }
-}
 
 function get_ml_service_url() {
   const url = process.env.ML_SERVICE_URL || ''
@@ -69,21 +50,15 @@ function get_error_message(status) {
   return 'Diagnosis request failed'
 }
 
-router.post('/', diagnose_limiter, upload.single('image'), async (req, res) => {
-  // Priority 1: Check authentication FIRST
-  const auth_user = get_auth_user(req)
-  if (!auth_user) {
-    res.status(401).json({ message: 'Unauthorized' })
-    return
-  }
-  
-  // Priority 2: Validate image
+// RBAC: only farmers can submit diagnoses
+router.post('/', requireAuth, requireRole(['farmer']), diagnose_limiter, upload.single('image'), async (req, res) => {
+  // Validate image
   const validation = validate_image_file(req.file)
   if (!validation.valid) {
     res.status(400).json({ message: validation.message })
     return
   }
-  
+
   const ml_base = get_ml_service_url()
   if (!ml_base) {
     res.status(501).json({ message: 'ML service not configured', detail: 'Set ML_SERVICE_URL in the backend environment' })
@@ -100,11 +75,11 @@ router.post('/', diagnose_limiter, upload.single('image'), async (req, res) => {
       res.status(502).json({ message: 'Empty response from ML service' })
       return
     }
-    
-    // Save diagnosis to database
+
+    // Save diagnosis to database (req.auth set by requireAuth)
     try {
       const diagnosis_record = new Diagnosis({
-        user_id: auth_user.userId,
+        user_id: req.auth.userId,
         diagnosis: ml_resp.data.diagnosis,
         confidence: ml_resp.data.confidence,
         alternatives: ml_resp.data.alternatives || [],

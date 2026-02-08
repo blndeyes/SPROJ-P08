@@ -61,6 +61,14 @@ const userSchema = new mongoose.Schema(
 
     lock_until: {
       type: Date
+    },
+
+    // Google Sign-In (optional; when set, user can sign in with Google)
+    google_id: {
+      type: String,
+      required: false,
+      sparse: true,
+      unique: true
     }
   },
   {

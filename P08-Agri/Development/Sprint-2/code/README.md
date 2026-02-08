@@ -35,3 +35,9 @@ This will start:
 ```bash
 cd backend
 npm run dev
+```
+
+### Google Sign-In (optional)
+
+Farmers and inspectors can sign in or sign up with their Google (Gmail) account.
+

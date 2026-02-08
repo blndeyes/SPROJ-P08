@@ -1,13 +1,12 @@
 const express = require('express')
-const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const User = require('../models/User')
 const PasswordHistory = require('../models/PasswordHistory')
 const PasswordSecurity = require('../models/PasswordSecurity')
 const { send_password_change_email } = require('../email_service')
+const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
 // How many wrong attempts before lockout
 const MAX_FAILED_ATTEMPTS = 5
@@ -15,46 +14,6 @@ const MAX_FAILED_ATTEMPTS = 5
 const LOCKOUT_MINUTES = 15
 // How many previous passwords to block reuse of
 const PASSWORD_HISTORY_DEPTH = 5
-
-function get_auth_user(request) {
-  const auth_header = request.headers.authorization || ''
-  console.log('[Account][auth-header]', auth_header)
-
-  if (!auth_header.startsWith('Bearer ')) {
-    console.warn('[Account][no-bearer-header]')
-    return null
-  }
-
-  const token = auth_header.slice(7)
-  if (!token) {
-    console.warn('[Account][empty-token]')
-    return null
-  }
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    console.log('[Account][jwt-payload]', payload)
-
-    const user_id = payload.userId || payload.sub || payload.id || null
-    const email = payload.email || payload.userEmail || null
-
-    if (!user_id && !email) {
-      console.warn('[Account][auth-payload-unusable]', payload)
-      return null
-    }
-
-    return {
-      userId: user_id,
-      email: email
-    }
-  } catch (error) {
-    console.error('[Account][jwt-verify-error]', error.message || error)
-    if (error && error.stack) {
-      console.error(error.stack)
-    }
-    return null
-  }
-}
 
 function validate_new_password(password, user) {
   if (!password || typeof password !== 'string') {
@@ -178,15 +137,9 @@ async function update_password(user, new_password, previous_hash, now) {
   await user.save()
 }
 
-router.post('/change-password', async function (request, response) {
+router.post('/change-password', requireAuth, async function (request, response) {
   try {
-    const auth_user = get_auth_user(request)
-    console.log('[Account][change-password][auth_user]', auth_user)
-
-    if (!auth_user) {
-      return response.status(401).json({ message: 'Unauthorized' })
-    }
-
+    const userId = request.auth.userId
     const old_password_raw = request.body?.oldPassword || ''
     const new_password_raw = request.body?.newPassword || ''
 
@@ -199,7 +152,7 @@ router.post('/change-password', async function (request, response) {
         .json({ message: 'Old password and new password are required' })
     }
 
-    const user = await User.findById(auth_user.userId)
+    const user = await User.findById(userId)
     if (!user) {
       return response.status(404).json({ message: 'User not found' })
     }

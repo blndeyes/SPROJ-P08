@@ -9,19 +9,27 @@
     "success": "Success"
   },
   "login": {
-    "title": "Welcome Back",
+    "title": "Welcome back",
+    "subtitle": "Sign in to your AgriQual account",
     "newToAgriQual": "New to AgriQual?",
     "createAccount": "Create an account",
     "emailLabel": "Email address",
-    "emailPlaceholder": "name@company.com",
+    "emailPlaceholder": "you@example.com",
     "passwordLabel": "Password",
-    "passwordPlaceholder": "••••••••",
-    "forgotPassword": "Forgot your password?",
-    "orDivider": "or",
-    "continueWithGoogle": "Continue with Google",
-    "loginButton": "Login",
-    "loggingIn": "Logging in...",
-    "loginFailed": "Login failed. Please try again."
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "orDivider": "or continue with",
+    "continueWithGoogle": "Sign in with Google",
+    "loginButton": "Sign in",
+    "loggingIn": "Signing in...",
+    "loginFailed": "Login failed. Please try again.",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up",
+    "heroTitle": "Monitor crop health with confidence",
+    "heroDescription": "AgriQual helps wheat farmers in Pakistan detect diseases early, get actionable recommendations, and improve yields through AI-powered analysis.",
+    "heroFeature1": "Instant disease detection from field images",
+    "heroFeature2": "Weather-based farming recommendations",
+    "heroFeature3": "Track diagnosis history and field reports"
   },
   "register": {
     "title": "Create Account",
@@ -53,7 +61,14 @@
     "passwordRequired": "Password is required",
     "passwordMinLength": "Password must be at least 8 characters",
     "passwordsDoNotMatch": "Passwords do not match",
-    "registrationFailed": "Registration failed. Please try again."
+    "registrationFailed": "Registration failed. Please try again.",
+    "subtitle": "Join AgriQual to get started",
+    "heroTitle": "Start your journey with AgriQual",
+    "heroDescription": "Join thousands of wheat farmers in Pakistan who are already using AgriQual to protect their crops, increase yields, and farm smarter with AI-powered insights.",
+    "heroFeature1": "Free account with instant access",
+    "heroFeature2": "AI-powered disease detection in seconds",
+    "heroFeature3": "Expert recommendations tailored to your region",
+    "heroFeature4": "Track your field health over time"
   },
   "verifyOtp": {
     "title": "Verify your email",
@@ -204,7 +219,18 @@
     "rustDetected": "Rust Detected",
     "totalDiagnosesCard": "Total Diagnoses",
     "recentIssues": "Recent Issues",
-    "diagnosisFor": "Diagnosis for"
+    "diagnosisFor": "Diagnosis for",
+    "dashboardSubtitle": "Manage your fields, scan crops, and track your harvest health.",
+    "dropImageText": "Drop an image or click to browse",
+    "checkWeatherSubtitle": "Check today's conditions for your area",
+    "pastScans": "Past scans",
+    "contactSupport": "Contact support",
+    "recentScans": "Recent Scans",
+    "viewAll": "View all",
+    "issues": "Issues",
+    "tip": "Tip",
+    "rain": "Rain",
+    "issueDetected": "Issue detected"
   },
   "diagnosticHistory": {
     "backButton": "Back",

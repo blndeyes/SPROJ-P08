@@ -56,6 +56,24 @@ export const verifyOtp = async ({ email, otp }) => {
   }
 }
 
+export const googleSignIn = async (idToken, role) => {
+  try {
+    const payload = role != null ? { id_token: idToken, role } : { id_token: idToken }
+    const response = await api.post('/google', payload)
+    if (response.data?.token) {
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+    }
+    return response.data
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      'Google sign-in failed'
+    throw new Error(message)
+  }
+}
+
 export const login = async (credentials) => {
   try {
     const response = await api.post('/login', credentials)
@@ -165,6 +183,7 @@ const auth_service = {
   registerWithOtp,
   verifyOtp,
   login,
+  googleSignIn,
   changePassword,
   logout,
   getCurrentUser,

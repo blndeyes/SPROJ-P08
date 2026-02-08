@@ -1,11 +1,10 @@
 const express = require('express')
-const jwt = require('jsonwebtoken')
 const Complaint = require('../models/Complaint')
 const User = require('../models/User')
 const { send_help_email } = require('../email_service')
+const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
 // ==== Rate-limit configuration (per user+IP) ====
 const HELP_WINDOW_SECONDS =
@@ -13,29 +12,7 @@ const HELP_WINDOW_SECONDS =
 const HELP_MAX_PER_WINDOW =
   Number(process.env.HELP_TICKET_MAX_PER_WINDOW) || 5
 
-// key = `${user_id}|${client_ip}`, value = { count, windowStartMs }
 const help_rate_store = new Map()
-
-// ---- JWT helper ----
-function get_auth_user(request) {
-  const auth_header = request.headers.authorization || ''
-  if (!auth_header.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = auth_header.slice(7)
-  if (!token) {
-    return null
-  }
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    return payload
-  } catch (error) {
-    console.error('[Help][jwt-verify-error]', error.message || error)
-    return null
-  }
-}
 
 // ---- figure out a stable client IP behind proxy (Render) ----
 function get_client_ip(request) {
@@ -106,29 +83,15 @@ function check_help_rate_limit(user_id, client_ip) {
   return { allowed: true }
 }
 
-// ==== POST /api/help/complaints ====
-router.post('/complaints', async function (request, response) {
+// ==== POST /api/help/complaints (any authenticated user) ====
+router.post('/complaints', requireAuth, async function (request, response) {
   try {
-    // 1) Require auth
-    const auth_user = get_auth_user(request)
-    if (!auth_user) {
-      return response.status(401).json({ message: 'Unauthorized' })
-    }
-
-    // 2) Derive user_id from payload (sub / userId / id / _id)
-    const user_id =
-      auth_user.userId ||
-      auth_user.sub ||
-      auth_user.id ||
-      auth_user._id ||
-      null
-
+    const user_id = request.auth.userId
     if (!user_id) {
-      console.error('[Help][auth-payload-missing-id]', auth_user)
       return response.status(401).json({ message: 'Unauthorized' })
     }
 
-    // 3) Look up the user in MongoDB to get email
+    // Look up the user in MongoDB to get email
     let user_email = ''
     try {
       const user_doc = await User.findById(user_id).select('email').lean()

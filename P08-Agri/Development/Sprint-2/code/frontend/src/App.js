@@ -1,5 +1,6 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { LanguageProvider } from './contexts/LanguageContext'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
@@ -10,42 +11,59 @@ import DiagnosticHistory from './pages/dashboard/DiagnosticHistory'
 import AdminDashboard from './pages/dashboard/AdminDashboard'
 import './App.css'
 
+/**
+ * RBAC: role-based access control for farmer / inspector / admin.
+ * STRIDE: invalid or unknown role clears session (no elevation); wrong-role URL
+ * redirects to that user's dashboard (no info leak); catch-all sends to login or
+ * role dashboard (no arbitrary URL access).
+ */
 function App() {
   const isAuthenticated = () => {
     return localStorage.getItem('token') !== null
   }
 
+  const VALID_ROLES = ['farmer', 'inspector', 'admin']
+
   const getUserRole = () => {
     const userJson = localStorage.getItem('user')
-    if (!userJson) {
-      return null
-    }
+    if (!userJson) return null
     try {
       const user = JSON.parse(userJson)
-      return user.role || null
+      const role = user?.role || null
+      return VALID_ROLES.includes(role) ? role : null
     } catch {
       return null
     }
   }
 
+  const clearSession = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+  }
+
+  const redirectToRoleDashboard = (role) => {
+    if (role === 'farmer') return '/farmer-dashboard'
+    if (role === 'admin') return '/admin-dashboard'
+    if (role === 'inspector') return '/inspector-dashboard'
+    return null
+  }
+
   const PrivateRoute = ({ children, allowedRoles }) => {
     if (!isAuthenticated()) {
-      return <Navigate to="/login" />
+      return <Navigate to="/login" replace />
     }
 
-    if (allowedRoles && allowedRoles.length > 0) {
-      const userRole = getUserRole()
-      if (!allowedRoles.includes(userRole)) {
-        if (userRole === 'farmer') {
-          return <Navigate to="/farmer-dashboard" />
-        } else if (userRole === 'admin') {
-          return <Navigate to="/admin-dashboard" />
-        } else if (userRole === 'inspector') {
-          return <Navigate to="/inspector-dashboard" />
-        } else {
-          return <Navigate to="/dashboard" />
-        }
-      }
+    const userRole = getUserRole()
+    if (userRole === null) {
+      clearSession()
+      return <Navigate to="/login" replace />
+    }
+
+    if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+      const target = redirectToRoleDashboard(userRole)
+      if (target) return <Navigate to={target} replace />
+      clearSession()
+      return <Navigate to="/login" replace />
     }
 
     return children
@@ -53,29 +71,39 @@ function App() {
 
   const DashboardRedirect = () => {
     if (!isAuthenticated()) {
-      return <Navigate to="/login" />
+      return <Navigate to="/login" replace />
     }
-
     const userRole = getUserRole()
-    if (userRole === 'farmer') {
-      return <Navigate to="/farmer-dashboard" />
-    } else if (userRole === 'admin') {
-      return <Navigate to="/admin-dashboard" />
-    } else if (userRole === 'inspector') {
-      return <Navigate to="/inspector-dashboard" />
-    } else {
-      return <Navigate to="/dashboard" />
+    if (userRole === null) {
+      clearSession()
+      return <Navigate to="/login" replace />
     }
+    const target = redirectToRoleDashboard(userRole)
+    if (target) return <Navigate to={target} replace />
+    clearSession()
+    return <Navigate to="/login" replace />
   }
 
-  return (
-    <LanguageProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-otp" element={<VerifyOtp />} />
+  const CatchAllRedirect = () => {
+    if (!isAuthenticated()) {
+      return <Navigate to="/login" replace />
+    }
+    const userRole = getUserRole()
+    if (userRole === null) {
+      clearSession()
+      return <Navigate to="/login" replace />
+    }
+    const target = redirectToRoleDashboard(userRole)
+    return <Navigate to={target || '/login'} replace />
+  }
 
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || ''
+  const routes = (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/dashboard" element={<DashboardRedirect />} />
         <Route
           path="/farmer-dashboard"
@@ -109,9 +137,21 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<CatchAllRedirect />} />
       </Routes>
     </Router>
+  )
+
+  return (
+    <LanguageProvider>
+      {googleClientId ? (
+        <GoogleOAuthProvider clientId={googleClientId}>
+          {routes}
+        </GoogleOAuthProvider>
+      ) : (
+        routes
+      )}
     </LanguageProvider>
   )
 }

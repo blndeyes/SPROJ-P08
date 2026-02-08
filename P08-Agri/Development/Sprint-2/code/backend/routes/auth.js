@@ -2,11 +2,43 @@ const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
+const rateLimit = require('express-rate-limit')
+const { OAuth2Client } = require('google-auth-library')
 const { Resend } = require('resend')
 const User = require('../models/User')
 const AdminSeed = require('../models/AdminSeed')
+const LoginAttempt = require('../models/LoginAttempt')
 
 const router = express.Router()
+
+// STRIDE Denial of service: rate limit Google auth endpoint
+const GOOGLE_AUTH_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const GOOGLE_AUTH_MAX_PER_WINDOW = 15
+const google_auth_limiter = rateLimit({
+  windowMs: GOOGLE_AUTH_WINDOW_MS,
+  max: GOOGLE_AUTH_MAX_PER_WINDOW,
+  message: { message: 'Too many Google sign-in attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+// STRIDE Repudiation: log Google sign-in attempt (never log id_token)
+async function log_google_attempt(request, email, userId, success, reason) {
+  try {
+    const safeEmail = (email && String(email).trim()) ? String(email).toLowerCase().trim() : '(no-email)'
+    await LoginAttempt.create({
+      email: safeEmail,
+      user_id: userId || undefined,
+      ip_address: request.ip || request.connection?.remoteAddress,
+      user_agent: request.get('user-agent') || undefined,
+      success,
+      reason: reason || undefined,
+      method: 'google'
+    })
+  } catch (err) {
+    console.error('[Auth] Failed to log Google attempt:', err.message || err)
+  }
+}
 
 let resend_client = null
 
@@ -370,6 +402,109 @@ router.post('/login', async function (request, response) {
     const message = error && error.message ? error.message : error
     console.error('[Auth] /login error:', message)
     return response.status(500).json({ message: 'Login failed' })
+  }
+})
+
+// Google Sign-In (farmers and inspectors only; admin cannot sign up via Google)
+// STRIDE: rate limit applied (DoS), audit log (Repudiation), no token logging (Info disclosure)
+router.post('/google', google_auth_limiter, async function (request, response) {
+  try {
+    const { id_token: idToken, role: requestedRole } = request.body || {}
+
+    // STRIDE Elevation of privilege: reject any attempt to supply admin role via Google
+    const roleLower = String(requestedRole || '').trim().toLowerCase()
+    if (roleLower === 'admin') {
+      await log_google_attempt(request, '', null, false, 'role_admin_rejected')
+      return response.status(403).json({ message: 'Admin role is not allowed via Google sign-in' })
+    }
+
+    if (!idToken || typeof idToken !== 'string') {
+      return response.status(400).json({ message: 'Google ID token is required' })
+    }
+
+    const googleClientId = process.env.GOOGLE_CLIENT_ID
+    if (!googleClientId) {
+      console.error('[Auth] GOOGLE_CLIENT_ID is not set')
+      return response.status(503).json({ message: 'Google sign-in is not configured' })
+    }
+
+    const client = new OAuth2Client(googleClientId)
+    let ticket
+    try {
+      ticket = await client.verifyIdToken({
+        idToken: idToken.trim(),
+        audience: googleClientId
+      })
+    } catch (verifyErr) {
+      const msg = verifyErr && verifyErr.message ? verifyErr.message : 'Invalid token'
+      console.error('[Auth] Google token verification failed:', msg)
+      await log_google_attempt(request, '', null, false, 'invalid_token')
+      return response.status(401).json({ message: 'Invalid Google sign-in. Please try again.' })
+    }
+
+    const payload = ticket.getPayload()
+    const googleId = payload.sub
+    const email = normalizeEmail(payload.email)
+    const name = (payload.name || payload.given_name || payload.email || 'User').trim()
+
+    if (!email) {
+      await log_google_attempt(request, '', null, false, 'missing_email')
+      return response.status(400).json({ message: 'Google account email is required' })
+    }
+
+    let user = await User.findOne({ google_id: googleId })
+    if (!user) {
+      user = await User.findOne({ email })
+    }
+
+    if (user) {
+      if (user.role === 'admin') {
+        await log_google_attempt(request, email, null, false, 'admin_cannot_use_google')
+        return response.status(403).json({ message: 'Admin accounts cannot sign in with Google' })
+      }
+      if (!user.google_id) {
+        user.google_id = googleId
+        user.name = name || user.name
+        user.email_verified = true
+        user.failed_login_attempts = 0
+        user.lock_until = null
+        user.pending_otp_hash = undefined
+        user.pending_otp_expires_at = undefined
+        await user.save()
+      }
+    } else {
+      const safe_role = normalize_role(requestedRole)
+      user = new User({
+        name: name || 'User',
+        email,
+        role: safe_role,
+        google_id: googleId,
+        email_verified: true,
+        failed_login_attempts: 0,
+        lock_until: null
+      })
+      await user.save()
+    }
+
+    const token = createTokenForUser(user)
+    const safeUser = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role || 'farmer'
+    }
+
+    await log_google_attempt(request, user.email, user._id, true, undefined)
+
+    return response.json({
+      token,
+      user: safeUser
+    })
+  } catch (error) {
+    const message = error && error.message ? error.message : error
+    console.error('[Auth] /google error:', message)
+    await log_google_attempt(request, '', null, false, 'server_error').catch(() => {})
+    return response.status(500).json({ message: 'Google sign-in failed' })
   }
 })
 

@@ -1,11 +1,10 @@
 const express = require('express')
-const jwt = require('jsonwebtoken')
 const OpenAI = require('openai')
 
 const { retrieve_chunks, build_evidence_block } = require('../lib/rag')
+const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
 let openai_client = null
 
@@ -25,24 +24,7 @@ function get_openai_client() {
   return openai_client
 }
 
-function get_auth_user(request) {
-  const auth_header = request.headers.authorization || ''
-  if (!auth_header.startsWith('Bearer ')) {
-    return null
-  }
-  const token = auth_header.slice(7)
-  if (!token) {
-    return null
-  }
-  try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    return payload
-  } catch (error) {
-    return null
-  }
-}
-
-function build_system_prompt(diagnosis_payload, auth_user) {
+function build_system_prompt(diagnosis_payload, auth) {
   const lines = []
 
   lines.push(
@@ -50,8 +32,8 @@ function build_system_prompt(diagnosis_payload, auth_user) {
       'Use simple, clear language. Focus on practical field advice that small farmers can follow.'
   )
 
-  if (auth_user && auth_user.email) {
-    lines.push('The current authenticated user email is: ' + auth_user.email + '.')
+  if (auth && auth.email) {
+    lines.push('The current authenticated user email is: ' + auth.email + '.')
   }
 
   if (diagnosis_payload && typeof diagnosis_payload === 'object') {
@@ -136,14 +118,8 @@ function normalize_messages(raw_messages) {
   return normalized
 }
 
-router.post('/', async function (request, response) {
+router.post('/', requireAuth, async function (request, response) {
   try {
-    const auth_user = get_auth_user(request)
-    if (!auth_user) {
-      response.status(401).json({ message: 'Unauthorized' })
-      return
-    }
-
     const client = get_openai_client()
     if (!client) {
       response.status(501).json({
@@ -182,7 +158,7 @@ router.post('/', async function (request, response) {
     const retrieved_chunks = await retrieve_chunks(rag_query, 6)
     const evidence_block = build_evidence_block(retrieved_chunks)
 
-    const system_prompt = build_system_prompt(diagnosis_payload, auth_user)
+    const system_prompt = build_system_prompt(diagnosis_payload, request.auth)
     const model_name = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
 
     const all_messages = [
