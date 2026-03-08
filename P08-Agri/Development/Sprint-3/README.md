@@ -9,9 +9,9 @@ Team:
 
 LIST OF REQUIREMENTS COMPLETED IN THE SPRINT
 
-- **Backend Transfer to Oracle + CI Pipeline** Zarak Qadir Khan
-- **Google SignUp + Role Based Access:** Mishaal Usman
-- **Admin Dashboard + Farmer Dashboard Figma/UI:** M. Walid Khalid + Syeda Umaima Hasan 
+- **Implemnted CD Pipeline** Zarak Qadir Khan
+- **Fixed Bugs that arised from Oracle Deploymnet(Weather Advisory, ChatBot etc):** Mishaal Usman,Syeda Umaima Hasan
+- **Researched New PDFs to Add to RAG for Better Performance:** M. Walid Khalid 
 
 ------------------------------------------------------------------------------------------------
 
