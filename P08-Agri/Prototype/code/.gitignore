@@ -1,0 +1,14 @@
+﻿# secrets
+*.env
+*.env.*
+!.env.example
+
+# dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# build output
+frontend/build/
+backend/ml/artifacts/*.pt
+backend/ml/artifacts/*.pth
+backend/ml/artifacts/*.onnx
