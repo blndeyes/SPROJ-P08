@@ -1,3 +1,6 @@
+/**
+ * Help desk: authenticated farmers submit complaints; rate-limited per user and IP; emails support.
+ */
 const express = require('express')
 const Complaint = require('../models/Complaint')
 const User = require('../models/User')
@@ -6,9 +9,8 @@ const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
 
-// ==== Rate-limit configuration (per user+IP) ====
 const HELP_WINDOW_SECONDS =
-  Number(process.env.HELP_TICKET_WINDOW_SECONDS) || 3600 // 1 hour
+  Number(process.env.HELP_TICKET_WINDOW_SECONDS) || 3600
 const HELP_MAX_PER_WINDOW =
   Number(process.env.HELP_TICKET_MAX_PER_WINDOW) || 5
 
@@ -18,7 +20,6 @@ function get_client_ip(request) {
   const xf = request.headers['x-forwarded-for']
 
   if (typeof xf === 'string' && xf.length > 0) {
-    // "real-ip, proxy1, proxy2"
     return xf.split(',')[0].trim()
   }
 
@@ -26,11 +27,9 @@ function get_client_ip(request) {
     return String(xf[0]).trim()
   }
 
-  // fallback: internal IP
   return request.ip || request.connection?.remoteAddress || 'unknown'
 }
 
-// ---- tiny text cleaner: trim, collapse spaces, cap length ----
 function clean_text(value, max_len) {
   const str = typeof value === 'string' ? value : String(value || '')
   let trimmed = str.trim()
@@ -41,7 +40,6 @@ function clean_text(value, max_len) {
   return trimmed
 }
 
-// ---- rate limit per user + client IP ----
 function check_help_rate_limit(user_id, client_ip) {
   const now = Date.now()
   const window_ms = HELP_WINDOW_SECONDS * 1000

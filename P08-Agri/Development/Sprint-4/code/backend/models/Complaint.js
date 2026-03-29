@@ -1,4 +1,6 @@
-// backend/models/Complaint.js
+/**
+ * Farmer help-desk ticket stored for admin review and email follow-up.
+ */
 const mongoose = require('mongoose')
 
 const complaint_schema = new mongoose.Schema(

@@ -1,3 +1,6 @@
+/**
+ * Authenticated password change with strength rules, history check, and optional email notify.
+ */
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const User = require('../models/User')
@@ -8,11 +11,8 @@ const { requireAuth } = require('../middleware/auth')
 
 const router = express.Router()
 
-// How many wrong attempts before lockout
 const MAX_FAILED_ATTEMPTS = 5
-// Lockout duration in minutes
 const LOCKOUT_MINUTES = 15
-// How many previous passwords to block reuse of
 const PASSWORD_HISTORY_DEPTH = 5
 
 function validate_new_password(password, user) {

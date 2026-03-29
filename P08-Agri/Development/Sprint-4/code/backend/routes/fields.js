@@ -1,3 +1,6 @@
+/**
+ * CRUD for farmer wheat fields. List/detail include a simple health score from the latest linked diagnosis.
+ */
 const express = require('express')
 const { requireAuth, requireRole } = require('../middleware/auth')
 const Field = require('../models/Field')
@@ -6,6 +9,7 @@ const Diagnosis = require('../models/Diagnosis')
 const router = express.Router()
 
 function health_from_diagnosis(d) {
+  // Maps ML label + confidence to a 0–100 bar and a coarse status for the UI.
   if (!d) return { health: null, status: 'unknown' }
   const label = (d.diagnosis || '').toLowerCase()
   const conf = typeof d.confidence === 'number' ? d.confidence : 0

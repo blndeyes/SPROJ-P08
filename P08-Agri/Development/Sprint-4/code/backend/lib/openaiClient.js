@@ -1,3 +1,6 @@
+/**
+ * OpenAI client singleton plus helpers (e.g. weather advice text generation).
+ */
 const OpenAI = require('openai')
 
 const api_key = process.env.OPENAI_API_KEY

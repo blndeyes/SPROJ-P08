@@ -1,3 +1,7 @@
+/**
+ * AgriQual API entry point: Express app, MongoDB, CORS, and feature routers.
+ * Routers load from disk when present; otherwise stub routes return 501 so deploys stay predictable.
+ */
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
@@ -7,6 +11,7 @@ const mongoose = require('mongoose')
 const { connect_redis } = require('./redis_client')
 
 const app = express()
+// Behind reverse proxy / load balancer (e.g. K8s ingress) so req.ip and rate limits use the real client.
 app.set('trust proxy', 1)
 
 const mongo_uri = process.env.MONGODB_URI || process.env.MONGO_URI
@@ -28,10 +33,7 @@ if (!mongo_uri) {
     })
 }
 
-/* ================================
-   FIXED CORS CONFIGURATION
-   ================================ */
-
+// Web app origins + credentials. Any *.vercel.app is allowed so preview deploys work without listing each URL.
 const allowed_origins = [
   'http://localhost:3000',
   'https://sproj-p08-silk.vercel.app'
@@ -65,10 +67,6 @@ app.use(cors(cors_options))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-/* ================================
-   HEALTH ROUTES
-   ================================ */
-
 app.get('/health', function (request, response) {
   const payload = { ok: true, cwd: process.cwd() }
   response.json(payload)
@@ -79,16 +77,8 @@ app.get('/api/health', function (request, response) {
   response.json(payload)
 })
 
-/* ================================
-   AUTH ROUTES
-   ================================ */
-
 const auth_router = require(path.resolve(__dirname, 'routes', 'auth.js'))
 app.use('/api/auth', auth_router)
-
-/* ================================
-   WEATHER ROUTES
-   ================================ */
 
 const weather_router_path = path.resolve(__dirname, 'routes', 'weather.js')
 const weather_exists = fs.existsSync(weather_router_path)
@@ -100,7 +90,9 @@ try {
     app.use('/api/weather', weather_router)
     weather_mounted = true
   }
-} catch (error) {}
+} catch (error) {
+  // Intentionally quiet: missing optional router should not crash the whole API.
+}
 
 if (weather_mounted === false) {
   app.get('/api/weather', function (request, response) {
@@ -108,10 +100,6 @@ if (weather_mounted === false) {
     response.status(501).json(payload)
   })
 }
-
-/* ================================
-   DIAGNOSE ROUTES
-   ================================ */
 
 const diagnose_router_path = path.resolve(__dirname, 'routes', 'diagnose.js')
 let diagnose_mounted = false
@@ -144,10 +132,6 @@ if (diagnose_mounted === false) {
   })
 }
 
-/* ================================
-   HELP ROUTES
-   ================================ */
-
 const help_router_path = path.resolve(__dirname, 'routes', 'help.js')
 const help_exists = fs.existsSync(help_router_path)
 let help_mounted = false
@@ -167,10 +151,6 @@ if (help_mounted === false) {
   })
 }
 
-/* ================================
-   ACCOUNT ROUTES
-   ================================ */
-
 const account_router_path = path.resolve(__dirname, 'routes', 'account.js')
 const account_exists = fs.existsSync(account_router_path)
 let account_mounted = false
@@ -189,10 +169,6 @@ if (account_mounted === false) {
     response.status(501).json(payload)
   })
 }
-
-/* ================================
-   ADMIN ROUTES
-   ================================ */
 
 const admin_router_path = path.resolve(__dirname, 'routes', 'admin.js')
 const admin_exists = fs.existsSync(admin_router_path)
@@ -215,10 +191,6 @@ if (admin_mounted === false) {
   })
 }
 
-/* ================================
-   HISTORY ROUTES
-   ================================ */
-
 const history_router_path = path.resolve(__dirname, 'routes', 'history.js')
 const history_exists = fs.existsSync(history_router_path)
 let history_mounted = false
@@ -240,10 +212,6 @@ if (history_mounted === false) {
     response.status(501).json(payload)
   })
 }
-
-/* ================================
-   FIELDS ROUTES (wheat field plots)
-   ================================ */
 
 const fields_router_path = path.resolve(__dirname, 'routes', 'fields.js')
 const fields_exists = fs.existsSync(fields_router_path)
@@ -269,10 +237,6 @@ if (fields_mounted === false) {
   app.put('/api/fields/:id', fields_unavailable)
   app.delete('/api/fields/:id', fields_unavailable)
 }
-
-/* ================================
-   CHAT ROUTES
-   ================================ */
 
 const chat_router_path = path.resolve(__dirname, 'routes', 'chat.js')
 const chat_exists = fs.existsSync(chat_router_path)
@@ -300,10 +264,6 @@ if (chat_mounted === false) {
   })
 }
 
-/* ================================
-   CORS ERROR HANDLER
-   ================================ */
-
 app.use(function (error, request, response, next) {
   const is_cors_error = error && error.message === 'Not allowed by CORS'
   if (is_cors_error === true) {
@@ -314,10 +274,6 @@ app.use(function (error, request, response, next) {
 
   next(error)
 })
-
-/* ================================
-   START SERVER
-   ================================ */
 
 async function start_server() {
   try {

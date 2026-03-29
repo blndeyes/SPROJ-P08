@@ -1,3 +1,6 @@
+/**
+ * One ML diagnosis result for a user, optionally tied to a field for dashboard health.
+ */
 const mongoose = require('mongoose')
 
 const diagnosis_schema = new mongoose.Schema({

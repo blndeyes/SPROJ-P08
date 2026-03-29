@@ -1,3 +1,6 @@
+/**
+ * A farmer’s wheat plot: metadata only; health comes from the latest diagnosis linked to this field.
+ */
 const mongoose = require('mongoose')
 
 const field_schema = new mongoose.Schema({

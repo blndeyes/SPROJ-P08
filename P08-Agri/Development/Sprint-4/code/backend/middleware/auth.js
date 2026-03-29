@@ -1,19 +1,11 @@
 /**
- * Role-based access control (RBAC) middleware.
- * JWT payload from auth.js createTokenForUser: { sub: userId, role: 'farmer'|'inspector'|'admin' }
- *
- * STRIDE: Spoofing/Tampering (JWT verify); Repudiation (audit log on 403);
- * Information disclosure (generic 401/403); Elevation of privilege (requireRole).
+ * JWT auth middleware: requireAuth validates Bearer tokens and sets req.auth.
+ * requireRole restricts routes to specific roles (farmer, inspector, admin).
  */
 const jwt = require('jsonwebtoken')
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
-/**
- * Require valid JWT. Sets req.auth = { userId, role }.
- * Returns 401 if missing or invalid token.
- * STRIDE: No token or payload is logged (Information disclosure).
- */
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || ''
   if (!authHeader.startsWith('Bearer ')) {
@@ -25,7 +17,7 @@ function requireAuth(req, res, next) {
   }
   try {
     const payload = jwt.verify(token, JWT_SECRET)
-    const userId = payload.sub || payload.userId || payload.id
+    const userId = payload.sub || payload.userId || payload.id // backward-compatible: userId or id if older tokens lack sub
     const role = payload.role || null
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' })
@@ -37,9 +29,7 @@ function requireAuth(req, res, next) {
   }
 }
 
-/**
- * STRIDE Repudiation: log role-denied access (no token, no required-role leaked).
- */
+// Audit trail for 403 role checks; response stays generic for clients.
 function log_rbac_forbidden(req, reason) {
   const userId = req.auth && req.auth.userId ? String(req.auth.userId) : 'unknown'
   const role = req.auth && req.auth.role ? String(req.auth.role) : 'none'
@@ -47,12 +37,6 @@ function log_rbac_forbidden(req, reason) {
   console.log('[RBAC] Forbidden', { userId, role, path, reason })
 }
 
-/**
- * Require that the authenticated user has one of the allowed roles.
- * Use after requireAuth. Returns 403 if role not allowed.
- * STRIDE Repudiation: logs 403 with userId, role, path (no token).
- * @param {string[]} allowedRoles - e.g. ['farmer'], ['admin'], ['farmer','inspector']
- */
 function requireRole(allowedRoles) {
   if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
     return (req, res, next) => next()

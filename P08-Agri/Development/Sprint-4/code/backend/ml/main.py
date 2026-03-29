@@ -1,3 +1,6 @@
+"""
+FastAPI service: loads the traced PyTorch wheat-disease model, preprocesses uploads, returns label + confidence + tips.
+"""
 import io
 import json
 import time

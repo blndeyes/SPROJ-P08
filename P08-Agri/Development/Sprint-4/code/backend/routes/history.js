@@ -1,3 +1,6 @@
+/**
+ * Paginated diagnosis history for the logged-in user, plus PATCH to attach a diagnosis to a field.
+ */
 const express = require('express')
 const mongoose = require('mongoose')
 const { requireAuth } = require('../middleware/auth')

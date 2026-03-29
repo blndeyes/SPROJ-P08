@@ -1,3 +1,6 @@
+/**
+ * Audit log for sign-in attempts: email, IP, success flag, optional reason, method password vs google.
+ */
 const mongoose = require('mongoose')
 
 const login_attempt_schema = new mongoose.Schema(
@@ -26,7 +29,6 @@ const login_attempt_schema = new mongoose.Schema(
     reason: {
       type: String
     },
-    // STRIDE Repudiation: 'password' | 'google' for audit trail
     method: {
       type: String,
       enum: ['password', 'google'],

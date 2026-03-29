@@ -1,3 +1,6 @@
+/**
+ * Open-Meteo weather plus short farmer tips (EN/Urdu) and optional LLM summary.
+ */
 const express = require('express')
 const axios = require('axios')
 const router = express.Router()
@@ -5,7 +8,6 @@ const { get_llm_weather_advice } = require('../lib/openaiClient')
 
 const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast'
 
-// WMO weather codes to short description (Open-Meteo)
 function weathercode_to_condition(code) {
   if (code == null) return null
   const c = Number(code)

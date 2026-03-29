@@ -1,3 +1,6 @@
+/**
+ * RAG-backed chat for logged-in users: retrieves doc chunks, calls OpenAI with diagnosis context.
+ */
 const express = require('express')
 const OpenAI = require('openai')
 

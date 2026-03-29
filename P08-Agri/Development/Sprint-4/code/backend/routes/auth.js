@@ -1,3 +1,6 @@
+/**
+ * Auth API: register with OTP, verify OTP, login, JWT, Google sign-in, lockout and rate limits.
+ */
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
@@ -11,8 +14,7 @@ const LoginAttempt = require('../models/LoginAttempt')
 
 const router = express.Router()
 
-// STRIDE Denial of service: rate limit Google auth endpoint
-const GOOGLE_AUTH_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const GOOGLE_AUTH_WINDOW_MS = 15 * 60 * 1000
 const GOOGLE_AUTH_MAX_PER_WINDOW = 15
 const google_auth_limiter = rateLimit({
   windowMs: GOOGLE_AUTH_WINDOW_MS,
@@ -22,7 +24,6 @@ const google_auth_limiter = rateLimit({
   legacyHeaders: false
 })
 
-// STRIDE Repudiation: log Google sign-in attempt (never log id_token)
 async function log_google_attempt(request, email, userId, success, reason) {
   try {
     const safeEmail = (email && String(email).trim()) ? String(email).toLowerCase().trim() : '(no-email)'
@@ -140,6 +141,25 @@ function validatePasswordStrength(password) {
   return null
 }
 
+function userToSafeClient(user) {
+  let createdAt
+  const raw = user && user.createdAt
+  if (raw != null) {
+    const d = new Date(raw)
+    if (!Number.isNaN(d.getTime())) {
+      createdAt = d.toISOString()
+    }
+  }
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role || 'farmer',
+    ...(createdAt ? { createdAt } : {})
+  }
+}
+
+// JWT `sub` is the Mongo user id; middleware maps it to req.auth.userId for all protected routes.
 function createTokenForUser(user) {
   const payload = {
     sub: user._id.toString(),
@@ -163,6 +183,7 @@ function getLockoutSeconds(lockUntil) {
   return Math.round(diffMs / 1000)
 }
 
+// Start email registration: upsert unverified user, store hashed OTP + expiry, email code via Resend.
 router.post('/register-otp', async function (request, response) {
   try {
     if (!process.env.RESEND_API_KEY) {
@@ -226,7 +247,6 @@ router.post('/register-otp', async function (request, response) {
 
     await user.save()
 
-    // Send OTP via Resend.com to the email entered in the registration form
     await sendOtpEmail(normalizedEmail, otp)
 
     const payload = {
@@ -287,12 +307,7 @@ router.post('/verify-otp', async function (request, response) {
 
     const token = createTokenForUser(user)
 
-    const safeUser = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role || 'farmer'
-    }
+    const safeUser = userToSafeClient(user)
 
     return response.json({
       token,
@@ -394,12 +409,7 @@ router.post('/login', async function (request, response) {
 
     const token = createTokenForUser(user)
 
-    const safeUser = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role || 'farmer'
-    }
+    const safeUser = userToSafeClient(user)
 
     console.log('[Auth][login] success:', baseLog)
 
@@ -414,13 +424,11 @@ router.post('/login', async function (request, response) {
   }
 })
 
-// Google Sign-In (farmers and inspectors only; admin cannot sign up via Google)
-// STRIDE: rate limit applied (DoS), audit log (Repudiation), no token logging (Info disclosure)
+// Google Sign-In: verify ID token; reject client-claimed admin role (admins are not provisioned via Google).
 router.post('/google', google_auth_limiter, async function (request, response) {
   try {
     const { id_token: idToken, role: requestedRole } = request.body || {}
 
-    // STRIDE Elevation of privilege: reject any attempt to supply admin role via Google
     const roleLower = String(requestedRole || '').trim().toLowerCase()
     if (roleLower === 'admin') {
       await log_google_attempt(request, '', null, false, 'role_admin_rejected')
@@ -496,12 +504,7 @@ router.post('/google', google_auth_limiter, async function (request, response) {
     }
 
     const token = createTokenForUser(user)
-    const safeUser = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role || 'farmer'
-    }
+    const safeUser = userToSafeClient(user)
 
     await log_google_attempt(request, user.email, user._id, true, undefined)
 
@@ -559,12 +562,7 @@ router.post('/register', async function (request, response) {
 
     const token = createTokenForUser(user)
 
-    const safeUser = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role || 'farmer'
-    }
+    const safeUser = userToSafeClient(user)
 
     return response.json({
       token,

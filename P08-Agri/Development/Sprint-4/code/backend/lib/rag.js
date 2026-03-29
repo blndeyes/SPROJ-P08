@@ -1,3 +1,6 @@
+/**
+ * Retrieval for chat: embed query, score KnowledgeChunk vectors, return top passages.
+ */
 const OpenAI = require('openai')
 const KnowledgeChunk = require('../models/KnowledgeChunk')
 

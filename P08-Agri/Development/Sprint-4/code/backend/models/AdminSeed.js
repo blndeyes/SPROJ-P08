@@ -1,3 +1,6 @@
+/**
+ * One-time state so the first admin bootstrap does not run twice.
+ */
 const mongoose = require('mongoose')
 
 const adminSeedSchema = new mongoose.Schema(

@@ -1,3 +1,6 @@
+/**
+ * Embedded text slice from PDFs for RAG search in the chat feature.
+ */
 const mongoose = require('mongoose')
 
 const knowledge_chunk_schema = new mongoose.Schema({

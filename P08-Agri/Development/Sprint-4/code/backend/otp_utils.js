@@ -1,3 +1,6 @@
+/**
+ * Six-digit OTP generation and SHA-256 hashing for verification flows.
+ */
 const crypto = require('crypto')
 
 function generate_otp() {

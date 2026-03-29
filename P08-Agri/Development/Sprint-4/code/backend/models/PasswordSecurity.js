@@ -1,3 +1,6 @@
+/**
+ * Tracks failed password-change attempts and temporary lockouts per user.
+ */
 const mongoose = require('mongoose')
 
 const passwordSecuritySchema = new mongoose.Schema(

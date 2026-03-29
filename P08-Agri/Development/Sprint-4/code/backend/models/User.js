@@ -1,3 +1,6 @@
+/**
+ * User accounts: profile, roles, passwords (legacy plain + current hash), email verification, OTP, and optional Google ID.
+ */
 const mongoose = require('mongoose')
 
 const userSchema = new mongoose.Schema(
@@ -25,26 +28,21 @@ const userSchema = new mongoose.Schema(
       default: 'farmer'
     },
 
-    // Legacy password field (NO LONGER REQUIRED)
-    // kept only so old accounts that still have `password` continue to work
     password: {
       type: String,
       required: false
     },
 
-    // New hashed password field (what we actually use now)
     password_hash: {
       type: String,
       required: false
     },
 
-    // Email verification
     email_verified: {
       type: Boolean,
       default: false
     },
 
-    // OTP for registration / verification
     pending_otp_hash: {
       type: String
     },
@@ -53,7 +51,6 @@ const userSchema = new mongoose.Schema(
       type: Date
     },
 
-    // Login security
     failed_login_attempts: {
       type: Number,
       default: 0
@@ -63,7 +60,6 @@ const userSchema = new mongoose.Schema(
       type: Date
     },
 
-    // Google Sign-In (optional; when set, user can sign in with Google)
     google_id: {
       type: String,
       required: false,
@@ -75,8 +71,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true
   }
 )
-
-// Unique email enforced by schema "unique: true"
 
 const User = mongoose.model('User', userSchema)
 

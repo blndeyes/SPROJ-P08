@@ -1,3 +1,6 @@
+/**
+ * Optional Redis client; skipped when REDIS_URL is missing or SKIP_REDIS is set.
+ */
 const { createClient } = require('redis')
 
 const redis_client = createClient({

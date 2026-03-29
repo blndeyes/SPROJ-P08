@@ -1,9 +1,13 @@
+/**
+ * Admin-only APIs: complaints, broadcast email, password resets, inspection/SLA stats. Uses JWT role admin.
+ */
 const express = require('express')
 const crypto = require('crypto')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const mongoose = require('mongoose')
 const Complaint = require('../models/Complaint')
+const Diagnosis = require('../models/Diagnosis')
 const User = require('../models/User')
 const PasswordHistory = require('../models/PasswordHistory')
 const {
@@ -350,6 +354,160 @@ router.post('/email', async function (request, response) {
   } catch (error) {
     console.error('[Admin] Failed to send emails:', error.message || error)
     response.status(500).json({ message: 'Failed to send emails' })
+  }
+})
+
+router.get('/statistics', async function (request, response) {
+  try {
+    const auth_user = require_admin(request, response)
+    if (!auth_user) {
+      return
+    }
+
+    const { startDate, endDate } = request.query
+    const match_stage = {}
+    if (startDate || endDate) {
+      match_stage.created_at = {}
+      if (startDate) {
+        match_stage.created_at.$gte = new Date(startDate)
+      }
+      if (endDate) {
+        match_stage.created_at.$lte = new Date(endDate + 'T23:59:59.999Z')
+      }
+    }
+
+    const pipeline = [
+      ...(Object.keys(match_stage).length > 0 ? [{ $match: match_stage }] : []),
+      {
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                avg_conf: { $avg: '$confidence' }
+              }
+            }
+          ],
+          distribution: [
+            {
+              $group: {
+                _id: '$diagnosis',
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 10 },
+            { $project: { _id: 0, label: '$_id', count: 1 } }
+          ],
+          over_time: [
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$created_at' }
+                },
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { _id: 1 } },
+            { $project: { _id: 0, date: '$_id', count: 1 } }
+          ]
+        }
+      }
+    ]
+
+    const [result] = await Diagnosis.aggregate(pipeline)
+    const summary = (result && result.summary && result.summary[0]) || { total: 0, avg_conf: 0 }
+
+    response.json({
+      total_diagnoses: summary.total || 0,
+      avg_confidence: Math.round((summary.avg_conf || 0) * 100) / 100,
+      diagnosis_distribution: (result && result.distribution) || [],
+      diagnoses_over_time: (result && result.over_time) || []
+    })
+  } catch (error) {
+    console.error('[Admin] Failed to fetch statistics:', error.message || error)
+    response.status(500).json({ message: 'Failed to fetch statistics' })
+  }
+})
+
+router.get('/sla', async function (request, response) {
+  try {
+    const auth_user = require_admin(request, response)
+    if (!auth_user) {
+      return
+    }
+
+    const { startDate, endDate } = request.query
+    const base_match = { processing_ms: { $exists: true, $ne: null } }
+    if (startDate || endDate) {
+      base_match.created_at = {}
+      if (startDate) {
+        base_match.created_at.$gte = new Date(startDate)
+      }
+      if (endDate) {
+        base_match.created_at.$lte = new Date(endDate + 'T23:59:59.999Z')
+      }
+    }
+
+    const pipeline = [
+      { $match: base_match },
+      {
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                avg_ms: { $avg: '$processing_ms' },
+                compliant: {
+                  $sum: { $cond: [{ $lte: ['$processing_ms', 15000] }, 1, 0] }
+                },
+                breaches: {
+                  $sum: { $cond: [{ $gt: ['$processing_ms', 15000] }, 1, 0] }
+                }
+              }
+            }
+          ],
+          over_time: [
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$created_at' }
+                },
+                compliant: {
+                  $sum: { $cond: [{ $lte: ['$processing_ms', 15000] }, 1, 0] }
+                },
+                breaches: {
+                  $sum: { $cond: [{ $gt: ['$processing_ms', 15000] }, 1, 0] }
+                }
+              }
+            },
+            { $sort: { _id: 1 } },
+            { $project: { _id: 0, date: '$_id', compliant: 1, breaches: 1 } }
+          ]
+        }
+      }
+    ]
+
+    const [result] = await Diagnosis.aggregate(pipeline)
+    const summary = (result && result.summary && result.summary[0]) || { total: 0, avg_ms: 0, compliant: 0, breaches: 0 }
+    const total = summary.total || 0
+    const compliant = summary.compliant || 0
+    const breaches = summary.breaches || 0
+    const compliance_rate = total > 0 ? Math.round((compliant / total) * 1000) / 10 : 0
+
+    response.json({
+      total_requests: total,
+      compliant,
+      breaches,
+      compliance_rate,
+      avg_processing_ms: Math.round(summary.avg_ms || 0),
+      sla_over_time: (result && result.over_time) || []
+    })
+  } catch (error) {
+    console.error('[Admin] Failed to fetch SLA statistics:', error.message || error)
+    response.status(500).json({ message: 'Failed to fetch SLA statistics' })
   }
 })
 

@@ -1,3 +1,6 @@
+/**
+ * Stores recent password hashes so users cannot reuse old passwords.
+ */
 const mongoose = require('mongoose')
 
 const passwordHistorySchema = new mongoose.Schema(
