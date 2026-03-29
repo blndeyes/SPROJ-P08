@@ -9,11 +9,11 @@ Team:
 
 LIST OF REQUIREMENTS COMPLETED IN THE SPRINT
 
-- **Implemnted CD Pipeline, Manage Wheat Field Plots:** Mishaal Usman
-- **Fixed Daignosis and Chatbot Bugs:** Zarak Qadir Khan  
-- **Implemented domain and resend.com, fixed registeration bugs** Syeda Umaima Hasan
+- **Implemnted CD Pipeline, Manage Wheat Field Plots, Automatic Testing using Cypress:** Mishaal Usman
+- **Fixed Daignosis and Chatbot Bugs, ML deployment shift towards Oracle:** Zarak Qadir Khan  
+- **Implemented domain and resend.com, fixed registeration bugs, Receive Weather alerts, AI testing:** Syeda Umaima Hasan
 - **Testing:** Zarak Qadir Khan, Mishaal Usman, Syeda Umaima Hasan, Muhammad Walid Khalid
-- **Fixed other minor bugs:** Muhammad Walid Khalid
+- **Fixed other minor bugs, Inspection statistics and SLA monitoring:** Muhammad Walid Khalid
 
 ------------------------------------------------------------------------------------------------
 
